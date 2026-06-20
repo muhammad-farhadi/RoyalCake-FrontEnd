@@ -1,0 +1,37 @@
+name: royalcakes
+description: "Learn the art of baking with RoyalCakes. From simple cakes to advanced desserts, follow step-by-step courses and turn your passion for baking into professional skills."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^5.0.0
+
+flutter:
+
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/images/cake/             # برای عکس‌های دوره کیک
+    - assets/images/sweet/            # برای عکس‌های دوره شیرینی
+    - assets/images/cheesecake/       # برای عکس‌های دوره چیزکیک
+
+
+fonts:
+  - family: Samim
+    fonts:
+      - asset: fonts/Samim-Bold.ttf
+        weight: 700
