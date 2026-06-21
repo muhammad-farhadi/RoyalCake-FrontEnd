@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:royalcakes/pages/HomePage.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/theme/app_theme.dart';
+import 'features/auth/presentation/pages/login_page.dart';
+import 'features/home/presentation/pages/home_page.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    // ProviderScope برای مدیریت استیت‌های Riverpod الزامی است
+    const ProviderScope(child: MyApp()),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -11,12 +17,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Royal Cakes',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Color.fromARGB(1, 12, 77, 59)),
-      ),
+      title: 'Royal Cake',
       debugShowCheckedModeBanner: false,
-      home: const Homepage(),
+      locale: const Locale('fa', 'IR'),
+      // راست‌چین کردن کل اپلیکیشن
+      theme: AppTheme.lightTheme,
+      home: LoginPage(),
     );
   }
 }
