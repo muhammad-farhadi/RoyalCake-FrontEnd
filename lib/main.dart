@@ -20,9 +20,8 @@ class MyApp extends StatelessWidget {
       title: 'Royal Cake',
       debugShowCheckedModeBanner: false,
       locale: const Locale('fa', 'IR'),
-      // راست‌چین کردن کل اپلیکیشن
       theme: AppTheme.lightTheme,
-      home: LoginPage(),
+      home: HomePage(),
     );
   }
 }
