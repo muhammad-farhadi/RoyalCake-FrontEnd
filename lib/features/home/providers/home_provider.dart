@@ -4,7 +4,7 @@ import '../../../../core/network/dio_client.dart';
 
 // پرووایدر مدیریت وضعیت نوار ناوبری پایین
 final bottomNavIndexProvider = StateProvider<int>((ref) => 0);
-
+final authStateProvider = StateProvider<bool>((ref) => false);
 // پرووایدر دوره‌ها
 final coursesProvider = FutureProvider<List<dynamic>>((ref) async {
   final dio = ref.read(dioProvider);
