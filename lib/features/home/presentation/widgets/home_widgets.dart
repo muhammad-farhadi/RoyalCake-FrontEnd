@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 
 // ================== بخش ویژگی‌های متمایز ==================
@@ -70,7 +71,7 @@ class CategoryItem extends StatelessWidget {
 class CourseCard extends StatelessWidget {
   final String title;
   final String price;
-  final String imageUrl; // تغییر از imgAsset به imageUrl
+  final String imageUrl;
   final VoidCallback onTap;
 
   const CourseCard({
@@ -83,10 +84,8 @@ class CourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ترکیب آدرس سرور با مسیر عکس
-    final fullImageUrl = imageUrl.startsWith('http')
-        ? imageUrl
-        : 'http://royalcakes.ir$imageUrl';
+    // گرفتن لینک کامل به کمک متد هوشمند مرکزی
+    final fullImageUrl = AppConstants.getFullImageUrl(imageUrl);
 
     return Container(
       width: 165,
@@ -119,7 +118,6 @@ class CourseCard extends StatelessWidget {
                     fullImageUrl,
                     width: double.infinity,
                     fit: BoxFit.cover,
-                    // نمایش یک انیمیشن لودینگ تا زمانی که عکس دانلود شود
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
                       return Center(

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // اضافه شدن ریورپاد
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/home_widgets.dart';
 import '../../providers/home_provider.dart'; // پرووایدری که برای API ساختیم
@@ -868,11 +869,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                           itemCount: galleryImages.length,
                           itemBuilder: (context, index) {
                             final image = galleryImages[index];
-                            // اضافه کردن آدرس سرور به ابتدای عکس
-                            final fullImageUrl =
-                                (image['image_url'] ?? '').startsWith('http')
-                                ? image['image_url']
-                                : 'http://royalcakes.ir${image['image_url']}';
+
+                            // استفاده از متد مدیریت ثابت‌ها به جای هاردکد کردن لینک
+                            final fullImageUrl = AppConstants.getFullImageUrl(
+                              image['image_url'],
+                            );
 
                             return Container(
                               width: 110,
