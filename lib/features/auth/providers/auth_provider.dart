@@ -8,10 +8,13 @@ enum LoginStatus { success, unverified, error }
 class AuthState {
   final bool isLoading;
   final String? error;
-  final bool isSuccess; // وضعیت موفقیت برای فرم‌ها (همون چیزی که داشتید)
-  final bool
-  isAuthenticated; // آیا کاربر لاگین شده است؟ (برای نمایش اسم در دراور)
-  final Map<String, dynamic>? userInfo; // اطلاعات کامل کاربر (خروجی get me)
+  final bool isSuccess; // وضعیت موفقیت برای فرم‌ها
+  final bool isAuthenticated; // آیا کاربر لاگین شده است؟
+  final Map<String, dynamic>? userInfo; // اطلاعات کامل کاربر
+
+  // ---> این خط را اضافه کنید <---
+  // این گتر به صورت خودکار شماره را از داخل userInfo می‌خواند
+  String? get phoneNumber => userInfo?['phone_number'];
 
   AuthState({
     this.isLoading = false,
@@ -31,14 +34,12 @@ class AuthState {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
       error: error,
-      // برای اینکه بتونید ارور رو نال کنید
       isSuccess: isSuccess ?? this.isSuccess,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       userInfo: userInfo ?? this.userInfo,
     );
   }
 }
-
 class AuthNotifier extends StateNotifier<AuthState> {
   final Ref ref;
 

@@ -207,7 +207,7 @@ class AppDrawer extends ConsumerWidget {
               ),
             ),
             onTap: () {
-              Navigator.pop(context);
+              Navigator.pop(context); // فقط بستن دراور
               if (!isLoggedIn) {
                 // اگر لاگین نیست، مستقیم بره به صفحه لاگین
                 Navigator.push(
@@ -215,7 +215,7 @@ class AppDrawer extends ConsumerWidget {
                   MaterialPageRoute(builder: (context) => const LoginPage()),
                 );
               } else {
-                // TODO: هدایت به صفحه پروفایل (اگر در آینده اضافه کردید)
+                // TODO: هدایت به صفحه پروفایل
               }
             },
           ),
@@ -230,18 +230,20 @@ class AppDrawer extends ConsumerWidget {
               style: TextStyle(fontFamily: 'Samim'),
             ),
             onTap: () {
-              Navigator.pop(context); // بستن منوی کشویی
+              // تغییر مهم: بستن دراور و تمام صفحات باز شده رویی
+              Navigator.of(context).popUntil((route) => route.isFirst);
+
               if (!isLoggedIn) {
                 showLoginRequiredBottomSheet(context, ref);
               } else {
-                // به جای باز کردن صفحه جدید، تب را روی 4 تنظیم می‌کنیم
+                // تنظیم ایندکس روی عدد 4
                 ref.read(bottomNavIndexProvider.notifier).state = 4;
               }
             },
           ),
           ListTile(
             leading: const Icon(
-              Icons.receipt_long_outlined, // آیکون رسید/پرداخت
+              Icons.receipt_long_outlined,
               color: AppColors.primary,
             ),
             title: const Text(
@@ -249,11 +251,13 @@ class AppDrawer extends ConsumerWidget {
               style: TextStyle(fontFamily: 'Samim'),
             ),
             onTap: () {
-              Navigator.pop(context); // بستن دراور
+              // تغییر مهم: بستن دراور و تمام صفحات باز شده رویی
+              Navigator.of(context).popUntil((route) => route.isFirst);
+
               if (!isLoggedIn) {
                 showLoginRequiredBottomSheet(context, ref);
               } else {
-                // تنظیم ایندکس روی عدد 5 (صفحه پرداختی‌ها)
+                // تنظیم ایندکس روی عدد 5
                 ref.read(bottomNavIndexProvider.notifier).state = 5;
               }
             },
@@ -292,8 +296,6 @@ class MainBottomNav extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentTab = ref.watch(bottomNavIndexProvider);
-
-    // اینجا از پرووایدر اصلی که ساختیم وضعیت رو میخونیم
     final isLoggedIn = ref.watch(authProvider).isAuthenticated;
 
     void handleProtected(VoidCallback action) {
@@ -324,30 +326,44 @@ class MainBottomNav extends ConsumerWidget {
             label: 'خانه',
             color: Colors.grey.shade400,
             isActive: currentTab == 0,
-            onTap: () => ref.read(bottomNavIndexProvider.notifier).state = 0,
+            onTap: () {
+              // برگشتن به ریشه (صفحه اصلی) قبل از تغییر تب
+              Navigator.of(context).popUntil((route) => route.isFirst);
+              ref.read(bottomNavIndexProvider.notifier).state = 0;
+            },
           ),
           BottomNavShortcut(
             icon: Icons.chrome_reader_mode_outlined,
             label: 'دوره ها',
             color: Colors.grey.shade400,
             isActive: currentTab == 1,
-            onTap: () => ref.read(bottomNavIndexProvider.notifier).state = 1,
+            onTap: () {
+              // برگشتن به ریشه قبل از تغییر تب
+              Navigator.of(context).popUntil((route) => route.isFirst);
+              ref.read(bottomNavIndexProvider.notifier).state = 1;
+            },
           ),
           BottomNavShortcut(
             icon: Icons.image_rounded,
             label: 'گالری تصاویر',
             color: Colors.grey.shade400,
             isActive: currentTab == 2,
-            onTap: () => ref.read(bottomNavIndexProvider.notifier).state = 2,
+            onTap: () {
+              // برگشتن به ریشه قبل از تغییر تب
+              Navigator.of(context).popUntil((route) => route.isFirst);
+              ref.read(bottomNavIndexProvider.notifier).state = 2;
+            },
           ),
           BottomNavShortcut(
             icon: Icons.chat_bubble_outline_rounded,
             label: 'پرسش و پاسخ',
             color: Colors.grey.shade400,
             isActive: currentTab == 3,
-            onTap: () => handleProtected(
-              () => ref.read(bottomNavIndexProvider.notifier).state = 3,
-            ),
+            onTap: () => handleProtected(() {
+              // برگشتن به ریشه قبل از تغییر تب
+              Navigator.of(context).popUntil((route) => route.isFirst);
+              ref.read(bottomNavIndexProvider.notifier).state = 3;
+            }),
           ),
         ],
       ),
@@ -356,7 +372,7 @@ class MainBottomNav extends ConsumerWidget {
 }
 
 // ==========================================
-// ۴. اپ‌بار اصلی (Main AppBar) - قابل استفاده در همه صفحات
+// ۴. اپ‌بار اصلی (Main AppBar)
 // ==========================================
 class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final String title;
@@ -418,10 +434,8 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
       ),
       actions: [
         IconButton(
-          // استفاده از ویجت Badge فلاتر برای نمایش دایره قرمز
           icon: Badge(
             isLabelVisible: cartItemCount > 0,
-            // بج فقط زمانی که آیتم هست نمایش داده شود
             backgroundColor: Colors.redAccent,
             label: Text(
               cartItemCount.toString(),

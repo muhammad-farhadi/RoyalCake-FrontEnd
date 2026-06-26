@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:royalcakes/features/courses/presentation/pages/video_player_page.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../home/presentation/widgets/layout_widgets.dart';
@@ -241,6 +242,12 @@ class CourseDetailPage extends ConsumerWidget {
                                     itemCount: lessons.length,
                                     itemBuilder: (context, index) {
                                       final lesson = lessons[index];
+                                      final isFree = lesson['is_free'] == true;
+
+                                      // آیا کاربر حق تماشای این ویدیو را دارد؟
+                                      // (یا ویدیو رایگان است یا کاربر کل دوره را خریده)
+                                      final canWatch = isFree || isPurchased;
+
                                       return Container(
                                         margin: const EdgeInsets.only(
                                           bottom: 12,
@@ -254,51 +261,96 @@ class CourseDetailPage extends ConsumerWidget {
                                             color: Colors.grey.shade200,
                                           ),
                                         ),
-                                        child: ListTile(
-                                          leading: Container(
-                                            padding: const EdgeInsets.all(10),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.primary
-                                                  .withOpacity(0.1),
-                                              shape: BoxShape.circle,
+                                        child: InkWell(
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                          onTap: () {
+                                            if (canWatch) {
+                                              // باز کردن صفحه پلیر ویدیو
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      VideoPlayerPage(
+                                                        lessonId: lesson['id'],
+                                                        // باید آیدی جلسه پاس داده بشه
+                                                        lessonTitle:
+                                                            lesson['title'] ??
+                                                            'جلسه آموزشی',
+                                                      ),
+                                                ),
+                                              );
+                                            } else {
+                                              // پیام به کاربر اگر نخریده بود
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'برای تماشای این جلسه، ابتدا باید دوره را خریداری کنید.',
+                                                    style: TextStyle(
+                                                      fontFamily: 'Samim',
+                                                    ),
+                                                  ),
+                                                  backgroundColor:
+                                                      Colors.orange,
+                                                ),
+                                              );
+                                            }
+                                          },
+                                          child: ListTile(
+                                            leading: Container(
+                                              padding: const EdgeInsets.all(10),
+                                              decoration: BoxDecoration(
+                                                color: canWatch
+                                                    ? AppColors.primary
+                                                          .withOpacity(0.1)
+                                                    : Colors.grey.shade200,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Icon(
+                                                canWatch
+                                                    ? Icons.play_arrow_rounded
+                                                    : Icons
+                                                          .lock_outline_rounded,
+                                                color: canWatch
+                                                    ? AppColors.primary
+                                                    : Colors.grey,
+                                                size: 20,
+                                              ),
                                             ),
-                                            child: Text(
-                                              '${lesson['sort_order'] ?? index + 1}',
-                                              style: const TextStyle(
-                                                color: AppColors.primary,
-                                                fontWeight: FontWeight.bold,
+                                            title: Text(
+                                              lesson['title'] ?? 'جلسه',
+                                              style: TextStyle(
                                                 fontFamily: 'Samim',
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13,
+                                                color: canWatch
+                                                    ? AppColors.darkText
+                                                    : Colors.grey.shade600,
                                               ),
                                             ),
-                                          ),
-                                          title: Text(
-                                            lesson['title'] ?? 'جلسه',
-                                            style: const TextStyle(
-                                              fontFamily: 'Samim',
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 13,
-                                              color: AppColors.darkText,
+                                            subtitle: Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.access_time,
+                                                  size: 14,
+                                                  color: Colors.black45,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  _formatDuration(
+                                                    lesson['duration'] ?? 0,
+                                                  ),
+                                                  style: const TextStyle(
+                                                    fontFamily: 'Samim',
+                                                    fontSize: 11,
+                                                    color: Colors.black54,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                          ),
-                                          subtitle: Row(
-                                            children: [
-                                              const Icon(
-                                                Icons.access_time,
-                                                size: 14,
-                                                color: Colors.black45,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                _formatDuration(
-                                                  lesson['duration'] ?? 0,
-                                                ),
-                                                style: const TextStyle(
-                                                  fontFamily: 'Samim',
-                                                  fontSize: 11,
-                                                  color: Colors.black54,
-                                                ),
-                                              ),
-                                            ],
                                           ),
                                         ),
                                       );
@@ -385,6 +437,12 @@ class CourseDetailPage extends ConsumerWidget {
                             Expanded(
                               child: ElevatedButton(
                                 onPressed: () async {
+                                  if (!isLoggedIn) {
+                                    showLoginRequiredBottomSheet(context, ref);
+                                    return;
+                                  }
+                                  // -------------------------------------
+
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text(
