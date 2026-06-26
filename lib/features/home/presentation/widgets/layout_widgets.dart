@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../orders/presentation/pages/cart_page.dart';
+import '../../../orders/providers/cart_provider.dart';
 import '../../providers/home_provider.dart';
 import 'home_widgets.dart'; // برای BottomNavShortcut
+import '../../../auth/presentation/pages/login_page.dart'; // صفحه لاگین
+import '../../../auth/providers/auth_provider.dart'; // ایمپورت پرووایدر جدید لاگین
+import '../../../courses/presentation/pages/my_courses_page.dart';
 
 // ==========================================
-// ۱. پاپ‌آپ درخواست لاگین (متمرکز برای استفاده در همه جا)
+// ۱. پاپ‌آپ درخواست لاگین
 // ==========================================
 void showLoginRequiredBottomSheet(BuildContext context, WidgetRef ref) {
   showModalBottomSheet(
@@ -68,15 +73,12 @@ void showLoginRequiredBottomSheet(BuildContext context, WidgetRef ref) {
                       ),
                     ),
                     onPressed: () {
-                      Navigator.pop(context);
-                      ref.read(authStateProvider.notifier).state =
-                          true; // تغییر وضعیت لاگین از طریق ریورپاد
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'شما با موفقیت وارد شدید!',
-                            style: TextStyle(fontFamily: 'Samim'),
-                          ),
+                      Navigator.pop(context); // بستن پاپ‌آپ
+                      // هدایت به صفحه واقعی لاگین
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginPage(),
                         ),
                       );
                     },
@@ -127,20 +129,24 @@ class AppDrawer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isLoggedIn = ref.watch(authStateProvider);
+    // خواندن وضعیت از پرووایدر اصلی احراز هویت
+    final authState = ref.watch(authProvider);
+    final isLoggedIn = authState.isAuthenticated;
+    final userInfo = authState.userInfo;
+
+    // استخراج اسم و موبایل برای نمایش (در صورت لاگین بودن)
+    final userName = userInfo?['full_name'] ?? 'هنرجوی گرامی';
+    final userPhone = userInfo?['phone_number'] ?? '';
 
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          // جایگزینی DrawerHeader محدود با Container منعطف و رسپانسیو
           Container(
             width: double.infinity,
             color: AppColors.primary,
             padding: EdgeInsets.only(
-              top:
-                  MediaQuery.of(context).padding.top +
-                  20, // ایجاد فاصله امن از نوار آنتن و باتری
+              top: MediaQuery.of(context).padding.top + 20,
               bottom: 20,
               left: 16,
               right: 16,
@@ -149,7 +155,7 @@ class AppDrawer extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 CircleAvatar(
-                  radius: 34, // کمی بهینه‌تر برای سایزهای مختلف
+                  radius: 34,
                   backgroundColor: Colors.white,
                   backgroundImage: AssetImage(
                     isLoggedIn
@@ -166,7 +172,8 @@ class AppDrawer extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  isLoggedIn ? 'هنرجوی گرامی، خوش آمدید' : 'رویال کیک',
+                  // اگر لاگین بود اسم کاربر رو نشون بده
+                  isLoggedIn ? userName : 'رویال کیک',
                   style: const TextStyle(
                     color: Colors.white,
                     fontFamily: 'Samim',
@@ -176,23 +183,22 @@ class AppDrawer extends ConsumerWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  isLoggedIn
-                      ? 'مشاهده و مدیریت دوره‌ها'
-                      : 'آکادمی تخصصی آموزش کیک و شیرینی',
+                  // اگر لاگین بود شماره موبایل کاربر رو نشون بده
+                  isLoggedIn ? userPhone : 'آکادمی تخصصی آموزش کیک و شیرینی',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.75),
                     fontFamily: 'Samim',
-                    fontSize: 11,
+                    fontSize: 12,
                   ),
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 8), // یک فاصله کوچک برای تنفس ظاهر منو
+          const SizedBox(height: 8),
 
           ListTile(
-            leading: const Icon(Icons.login_rounded, color: AppColors.primary),
+            leading: const Icon(Icons.person_outline, color: AppColors.primary),
             title: Text(
               isLoggedIn ? 'پروفایل کاربری' : 'ورود و ثبت‌نام',
               style: const TextStyle(
@@ -202,7 +208,15 @@ class AppDrawer extends ConsumerWidget {
             ),
             onTap: () {
               Navigator.pop(context);
-              if (!isLoggedIn) showLoginRequiredBottomSheet(context, ref);
+              if (!isLoggedIn) {
+                // اگر لاگین نیست، مستقیم بره به صفحه لاگین
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                );
+              } else {
+                // TODO: هدایت به صفحه پروفایل (اگر در آینده اضافه کردید)
+              }
             },
           ),
           const Divider(),
@@ -216,24 +230,53 @@ class AppDrawer extends ConsumerWidget {
               style: TextStyle(fontFamily: 'Samim'),
             ),
             onTap: () {
-              Navigator.pop(context);
-              if (!isLoggedIn) showLoginRequiredBottomSheet(context, ref);
+              Navigator.pop(context); // بستن منوی کشویی
+              if (!isLoggedIn) {
+                showLoginRequiredBottomSheet(context, ref);
+              } else {
+                // به جای باز کردن صفحه جدید، تب را روی 4 تنظیم می‌کنیم
+                ref.read(bottomNavIndexProvider.notifier).state = 4;
+              }
             },
           ),
           ListTile(
             leading: const Icon(
-              Icons.bookmark_border_rounded,
+              Icons.receipt_long_outlined, // آیکون رسید/پرداخت
               color: AppColors.primary,
             ),
             title: const Text(
-              'علاقه‌مندی‌ها',
+              'پرداختی‌های من',
               style: TextStyle(fontFamily: 'Samim'),
             ),
             onTap: () {
-              Navigator.pop(context);
-              if (!isLoggedIn) showLoginRequiredBottomSheet(context, ref);
+              Navigator.pop(context); // بستن دراور
+              if (!isLoggedIn) {
+                showLoginRequiredBottomSheet(context, ref);
+              } else {
+                // تنظیم ایندکس روی عدد 5 (صفحه پرداختی‌ها)
+                ref.read(bottomNavIndexProvider.notifier).state = 5;
+              }
             },
           ),
+
+          // اضافه کردن دکمه خروج اگر کاربر لاگین بود
+          if (isLoggedIn) ...[
+            const Divider(),
+            ListTile(
+              leading: const Icon(
+                Icons.logout_rounded,
+                color: Colors.redAccent,
+              ),
+              title: const Text(
+                'خروج از حساب',
+                style: TextStyle(fontFamily: 'Samim', color: Colors.redAccent),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                ref.read(authProvider.notifier).logout();
+              },
+            ),
+          ],
         ],
       ),
     );
@@ -249,13 +292,16 @@ class MainBottomNav extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentTab = ref.watch(bottomNavIndexProvider);
-    final isLoggedIn = ref.watch(authStateProvider);
+
+    // اینجا از پرووایدر اصلی که ساختیم وضعیت رو میخونیم
+    final isLoggedIn = ref.watch(authProvider).isAuthenticated;
 
     void handleProtected(VoidCallback action) {
-      if (isLoggedIn)
+      if (isLoggedIn) {
         action();
-      else
+      } else {
         showLoginRequiredBottomSheet(context, ref);
+      }
     }
 
     return Container(
@@ -275,28 +321,28 @@ class MainBottomNav extends ConsumerWidget {
         children: [
           BottomNavShortcut(
             icon: Icons.home_filled,
-            label: 'Home',
+            label: 'خانه',
             color: Colors.grey.shade400,
             isActive: currentTab == 0,
             onTap: () => ref.read(bottomNavIndexProvider.notifier).state = 0,
           ),
           BottomNavShortcut(
             icon: Icons.chrome_reader_mode_outlined,
-            label: 'Courses',
+            label: 'دوره ها',
             color: Colors.grey.shade400,
             isActive: currentTab == 1,
             onTap: () => ref.read(bottomNavIndexProvider.notifier).state = 1,
           ),
           BottomNavShortcut(
             icon: Icons.image_rounded,
-            label: 'Gallery',
+            label: 'گالری تصاویر',
             color: Colors.grey.shade400,
             isActive: currentTab == 2,
             onTap: () => ref.read(bottomNavIndexProvider.notifier).state = 2,
           ),
           BottomNavShortcut(
             icon: Icons.chat_bubble_outline_rounded,
-            label: 'Q&A',
+            label: 'پرسش و پاسخ',
             color: Colors.grey.shade400,
             isActive: currentTab == 3,
             onTap: () => handleProtected(
@@ -307,4 +353,106 @@ class MainBottomNav extends ConsumerWidget {
       ),
     );
   }
+}
+
+// ==========================================
+// ۴. اپ‌بار اصلی (Main AppBar) - قابل استفاده در همه صفحات
+// ==========================================
+class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
+  final String title;
+
+  const MainAppBar({super.key, required this.title});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isLoggedIn = ref.watch(authProvider).isAuthenticated;
+
+    final cartState = ref.watch(cartProvider);
+    int cartItemCount = 0;
+
+    if (isLoggedIn &&
+        cartState.valueOrNull != null &&
+        cartState.valueOrNull!['items'] != null) {
+      cartItemCount = (cartState.valueOrNull!['items'] as List).length;
+    }
+
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0.5,
+      automaticallyImplyLeading: false,
+      title: Row(
+        children: [
+          Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(
+                Icons.menu_rounded,
+                color: AppColors.primary,
+                size: 26,
+              ),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
+          ),
+          const Spacer(),
+          Row(
+            children: [
+              Image.asset(
+                'assets/images/logo.png',
+                width: 28,
+                height: 28,
+                fit: BoxFit.contain,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Samim',
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+        ],
+      ),
+      actions: [
+        IconButton(
+          // استفاده از ویجت Badge فلاتر برای نمایش دایره قرمز
+          icon: Badge(
+            isLabelVisible: cartItemCount > 0,
+            // بج فقط زمانی که آیتم هست نمایش داده شود
+            backgroundColor: Colors.redAccent,
+            label: Text(
+              cartItemCount.toString(),
+              style: const TextStyle(
+                fontFamily: 'Samim',
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            child: const Icon(
+              Icons.shopping_cart_outlined,
+              color: AppColors.primary,
+              size: 24,
+            ),
+          ),
+          onPressed: () {
+            if (isLoggedIn) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CartPage()),
+              );
+            } else {
+              showLoginRequiredBottomSheet(context, ref);
+            }
+          },
+        ),
+      ],
+    );
+  }
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }

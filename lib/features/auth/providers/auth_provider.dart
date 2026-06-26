@@ -8,15 +8,33 @@ enum LoginStatus { success, unverified, error }
 class AuthState {
   final bool isLoading;
   final String? error;
-  final bool isSuccess;
+  final bool isSuccess; // وضعیت موفقیت برای فرم‌ها (همون چیزی که داشتید)
+  final bool
+  isAuthenticated; // آیا کاربر لاگین شده است؟ (برای نمایش اسم در دراور)
+  final Map<String, dynamic>? userInfo; // اطلاعات کامل کاربر (خروجی get me)
 
-  AuthState({this.isLoading = false, this.error, this.isSuccess = false});
+  AuthState({
+    this.isLoading = false,
+    this.error,
+    this.isSuccess = false,
+    this.isAuthenticated = false,
+    this.userInfo,
+  });
 
-  AuthState copyWith({bool? isLoading, String? error, bool? isSuccess}) {
+  AuthState copyWith({
+    bool? isLoading,
+    String? error,
+    bool? isSuccess,
+    bool? isAuthenticated,
+    Map<String, dynamic>? userInfo,
+  }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
       error: error,
+      // برای اینکه بتونید ارور رو نال کنید
       isSuccess: isSuccess ?? this.isSuccess,
+      isAuthenticated: isAuthenticated ?? this.isAuthenticated,
+      userInfo: userInfo ?? this.userInfo,
     );
   }
 }
@@ -24,11 +42,59 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final Ref ref;
 
-  AuthNotifier(this.ref) : super(AuthState());
+  AuthNotifier(this.ref) : super(AuthState()) {
+    // به محض اجرا شدن اپلیکیشن وضعیت کاربر چک می‌شود
+    checkAuthStatus();
+  }
+
+  // === متدهای جدید برای مدیریت نشست (Session) ===
+
+  // چک کردن توکن در زمان اجرای اولیه اپلیکیشن
+  Future<void> checkAuthStatus() async {
+    state = state.copyWith(isLoading: true, error: null);
+    final accessToken = await TokenStorage.getAccessToken();
+
+    if (accessToken != null && accessToken.isNotEmpty) {
+      // اگر توکن داشت، میریم اطلاعاتشو از سرور بگیریم
+      await fetchMe();
+    } else {
+      state = state.copyWith(isLoading: false, isAuthenticated: false);
+    }
+  }
+
+  // دریافت اطلاعات کاربری (روتر get me)
+  Future<void> fetchMe() async {
+    try {
+      final dio = ref.read(dioProvider);
+      final response = await dio.get('/users/me');
+
+      state = state.copyWith(
+        isLoading: false,
+        isAuthenticated: true,
+        userInfo: response.data,
+      );
+    } catch (e) {
+      // اگر توکن منقضی بود، توکن‌ها رو پاک میکنیم و میگیم لاگین نیست
+      await TokenStorage.clearTokens();
+      state = state.copyWith(
+        isLoading: false,
+        isAuthenticated: false,
+        userInfo: null,
+      );
+    }
+  }
+
+  // متد خروج از حساب
+  Future<void> logout() async {
+    await TokenStorage.clearTokens();
+    state = AuthState(isAuthenticated: false, userInfo: null, isSuccess: false);
+  }
+
+  // === متدهای قبلی شما (بدون تغییر در منطق کاری) ===
 
   // ۱. ورود با شماره موبایل و رمز عبور
   Future<LoginStatus> login(String phone, String password) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null, isSuccess: false);
     try {
       final dio = ref.read(dioProvider);
       final response = await dio.post(
@@ -49,7 +115,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final refresh = response.data['refresh_token'];
       await TokenStorage.saveTokens(access, refresh);
 
-      state = state.copyWith(isLoading: false, isSuccess: true);
+      // پس از لاگین موفق، بلافاصله اطلاعات کاربر رو هم می‌گیریم
+      await fetchMe();
+
+      state = state.copyWith(
+        isLoading: false,
+        isSuccess: true,
+        isAuthenticated: true,
+      );
       return LoginStatus.success;
     } on DioException catch (e) {
       if (e.response?.statusCode == 403 &&
@@ -67,14 +140,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<bool> resendOtp(String phone) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null, isSuccess: false);
     try {
       final dio = ref.read(dioProvider);
-
-      // نکته: این مسیر را بر اساس Swagger خود تنظیم کنید (مسیر درخواست مجدد کد)
       await dio.post('/users/resend-otp', data: {'phone_number': phone});
 
-      state = state.copyWith(isLoading: false);
+      state = state.copyWith(isLoading: false, isSuccess: true);
       return true;
     } on DioException catch (e) {
       final errorMsg = e.response?.data['detail'] ?? 'خطا در ارسال مجدد کد.';
@@ -85,12 +156,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   // ۲. ثبت‌نام و درخواست OTP
   Future<bool> register(String fullName, String phone, String password) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null, isSuccess: false);
     try {
       final dio = ref.read(dioProvider);
 
       await dio.post(
-        '/users/register', // مسیر دقیق ثبت‌نام از Swagger
+        '/users/register',
         data: {
           'full_name': fullName,
           'phone_number': phone,
@@ -115,17 +186,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String code,
     String password,
   ) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null, isSuccess: false);
     try {
       final dio = ref.read(dioProvider);
 
-      // ۱. ابتدا تایید حساب کاربری
       await dio.post(
         '/users/verify-otp',
         data: {'phone_number': phone, 'otp_code': code},
       );
 
-      // ۲. در صورت تایید موفق، به صورت خودکار لاگین می‌کنیم
       final loginResult = await login(phone, password);
 
       if (loginResult == LoginStatus.success) {
@@ -143,17 +212,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<bool> forgotPassword(String phone) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null, isSuccess: false);
     try {
       final dio = ref.read(dioProvider);
 
-      await dio.post(
-        '/users/forgot-password',
-        data: {'phone_number': phone},
-      );
+      await dio.post('/users/forgot-password', data: {'phone_number': phone});
 
-      state = state.copyWith(isLoading: false);
-      return true; // پیامک ارسال شد یا روت با موفقیت پاسخ داد
+      state = state.copyWith(isLoading: false, isSuccess: true);
+      return true;
     } on DioException catch (e) {
       final errorMsg =
           e.response?.data['detail'] ?? 'خطا در ارسال درخواست فراموشی رمز عبور';
@@ -168,11 +234,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String code,
     String newPassword,
   ) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null, isSuccess: false);
     try {
       final dio = ref.read(dioProvider);
 
-      // تغییر رمز عبور در سرور
       await dio.post(
         '/users/reset-password',
         data: {
@@ -182,7 +247,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         },
       );
 
-      // ورود خودکار بلافاصله با اطلاعات جدید
       final loginStatus = await login(phone, newPassword);
       return loginStatus == LoginStatus.success;
     } on DioException catch (e) {

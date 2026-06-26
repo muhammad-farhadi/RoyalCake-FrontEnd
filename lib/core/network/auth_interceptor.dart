@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../constants/app_constants.dart';
 import 'token_storage.dart';
 
 class AuthInterceptor extends Interceptor {
@@ -28,7 +29,7 @@ class AuthInterceptor extends Interceptor {
       if (refreshToken != null) {
         try {
           // یک نمونه جدید دیو می‌سازیم تا توی لوپ بی‌نهایت نیفتیم
-          final refreshDio = Dio(BaseOptions(baseUrl: 'http://royalcakes.ir'));
+          final refreshDio = Dio(BaseOptions(baseUrl: AppConstants.baseUrl));
 
           // درخواست رفرش توکن
           final response = await refreshDio.post(
