@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../orders/presentation/pages/cart_page.dart';
 import '../../../orders/providers/cart_provider.dart';
+import '../../../support/providers/chat_provider.dart';
 import '../../providers/home_provider.dart';
 import 'home_widgets.dart'; // برای BottomNavShortcut
 import '../../../auth/presentation/pages/login_page.dart'; // صفحه لاگین
@@ -298,6 +299,9 @@ class MainBottomNav extends ConsumerWidget {
     final currentTab = ref.watch(bottomNavIndexProvider);
     final isLoggedIn = ref.watch(authProvider).isAuthenticated;
 
+    // خواندن تعداد پیام‌های نخوانده از چت پرووایدر
+    final unreadCount = ref.watch(chatProvider.select((state) => state.unreadCount));
+
     void handleProtected(VoidCallback action) {
       if (isLoggedIn) {
         action();
@@ -327,7 +331,6 @@ class MainBottomNav extends ConsumerWidget {
             color: Colors.grey.shade400,
             isActive: currentTab == 0,
             onTap: () {
-              // برگشتن به ریشه (صفحه اصلی) قبل از تغییر تب
               Navigator.of(context).popUntil((route) => route.isFirst);
               ref.read(bottomNavIndexProvider.notifier).state = 0;
             },
@@ -338,32 +341,41 @@ class MainBottomNav extends ConsumerWidget {
             color: Colors.grey.shade400,
             isActive: currentTab == 1,
             onTap: () {
-              // برگشتن به ریشه قبل از تغییر تب
               Navigator.of(context).popUntil((route) => route.isFirst);
               ref.read(bottomNavIndexProvider.notifier).state = 1;
             },
           ),
           BottomNavShortcut(
             icon: Icons.image_rounded,
-            label: 'گالری تصاویر',
+            label: 'گالری',
             color: Colors.grey.shade400,
             isActive: currentTab == 2,
             onTap: () {
-              // برگشتن به ریشه قبل از تغییر تب
               Navigator.of(context).popUntil((route) => route.isFirst);
               ref.read(bottomNavIndexProvider.notifier).state = 2;
             },
           ),
-          BottomNavShortcut(
-            icon: Icons.chat_bubble_outline_rounded,
-            label: 'پرسش و پاسخ',
-            color: Colors.grey.shade400,
-            isActive: currentTab == 3,
-            onTap: () => handleProtected(() {
-              // برگشتن به ریشه قبل از تغییر تب
-              Navigator.of(context).popUntil((route) => route.isFirst);
-              ref.read(bottomNavIndexProvider.notifier).state = 3;
-            }),
+          // اضافه کردن Badge برای پشتیبانی
+          Badge(
+            isLabelVisible: unreadCount > 0,
+            label: Text(
+              unreadCount.toString(),
+              style: const TextStyle(fontFamily: 'Samim', fontSize: 10),
+            ),
+            backgroundColor: Colors.redAccent,
+            offset: const Offset(-8, -4),
+            child: BottomNavShortcut(
+              icon: Icons.chat_bubble_outline_rounded,
+              label: 'پشتیبانی',
+              color: Colors.grey.shade400,
+              isActive: currentTab == 3,
+              onTap: () => handleProtected(() {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                ref.read(bottomNavIndexProvider.notifier).state = 3;
+                // صفر کردن بج وقتی وارد صفحه چت می‌شویم
+                ref.read(chatProvider.notifier).markAsRead();
+              }),
+            ),
           ),
         ],
       ),

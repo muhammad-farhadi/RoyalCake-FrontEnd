@@ -5,6 +5,7 @@ import '../../../courses/presentation/pages/my_courses_page.dart';
 import '../../../gallery/presentation/pages/gallery_page.dart';
 import '../../../courses/presentation/pages/courses_page.dart';
 import '../../../orders/presentation/pages/my_payments_page.dart';
+import '../../../support/presentation/pages/support_chat_page.dart';
 import '../../providers/home_provider.dart';
 import '../widgets/layout_widgets.dart'; // حاوی Drawer، BottomNav، AuthSheet و MainAppBar
 import 'dashboard_view.dart'; // حاوی محتوای اصلی داشبورد
@@ -33,9 +34,11 @@ class HomePage extends ConsumerWidget {
         ),
         drawer: const AppDrawer(),
         body: currentTab == 5
-            ? const MyPaymentsPage() // <--- نمایش صفحه پرداختی‌ها در تب 5
+            ? const MyPaymentsPage()
             : currentTab == 4
             ? const MyCoursesPage()
+            : currentTab == 3
+            ? const SupportChatPage()
             : currentTab == 2
             ? const GalleryPage()
             : currentTab == 1

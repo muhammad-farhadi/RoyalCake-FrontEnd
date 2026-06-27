@@ -16,6 +16,10 @@ class CartNotifier extends StateNotifier<AsyncValue<Map<String, dynamic>?>> {
     try {
       // بررسی توکن قبل از ارسال درخواست
       final token = await TokenStorage.getAccessToken();
+
+      // بررسی زنده بودن کلاس قبل از آپدیت استیت
+      if (!mounted) return;
+
       if (token == null || token.isEmpty) {
         state = const AsyncValue.data(null);
         return;
@@ -23,8 +27,15 @@ class CartNotifier extends StateNotifier<AsyncValue<Map<String, dynamic>?>> {
 
       state = const AsyncValue.loading();
       final response = await _dio.get('/orders/cart');
+
+      // مهم: چون await داشتیم، ممکنه اینجا کلاس نابود شده باشه، پس دوباره چک میکنیم
+      if (!mounted) return;
+
       state = AsyncValue.data(response.data);
     } catch (e, st) {
+      // در بخش ارور هم باید چک کنیم
+      if (!mounted) return;
+
       state = AsyncValue.error(e, st);
     }
   }
