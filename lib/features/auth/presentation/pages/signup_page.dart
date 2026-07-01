@@ -31,14 +31,14 @@ class _SignupPageState extends ConsumerState<SignupPage> {
 
     if (name.isEmpty || phone.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لطفاً تمامی فیلدها را پر کنید.')),
+        const SnackBar(content: Text('لطفاً تمام فیلدها را پر کنید.')),
       );
       return;
     }
     if (phone.length < 11) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('شماره موبایل صحیح نیست.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('شماره موبایل وارد شده معتبر نیست.')),
+      );
       return;
     }
 
@@ -54,10 +54,11 @@ class _SignupPageState extends ConsumerState<SignupPage> {
       );
     } else if (mounted) {
       final error = ref.read(authProvider).error;
-      if (error != null)
+      if (error != null) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(error)));
+      }
     }
   }
 
@@ -67,27 +68,48 @@ class _SignupPageState extends ConsumerState<SignupPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
+      backgroundColor: const Color(0xfffcf8f8), // رنگ پس‌زمینه لایت اپ
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios),
           onPressed: () => Navigator.pop(context),
         ),
         backgroundColor: Colors.transparent,
+        iconTheme: const IconThemeData(
+          color: Color(0xff0c4d3b),
+        ), // رنگ آیکون بازگشت سبز تم
       ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            // تراز وسط تمامی المان‌ها
             children: [
-              Text('ایجاد حساب کاربری', style: theme.textTheme.headlineLarge),
+              // هدر صفحه کاملاً وسط‌چین شده
+              Center(
+                child: Text(
+                  'ایجاد حساب کاربری',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    color: const Color(0xff0c4d3b), // رنگ سبز اصلی تم
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
               const SizedBox(height: 8),
-              Text(
-                'برای دسترسی به دوره‌ها، اطلاعات خود را وارد کنید.',
-                style: theme.textTheme.bodyMedium,
+              Center(
+                child: Text(
+                  'جهت پیوستن به خانواده رویال کیک، فرم زیر را تکمیل کنید',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xff2c3e50), // رنگ متن تیره تم
+                  ),
+                ),
               ),
               const SizedBox(height: 32),
 
+              // فیلد نام و نام خانوادگی
               _buildTextField(
                 controller: _nameController,
                 hint: 'نام و نام خانوادگی',
@@ -95,6 +117,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
               ),
               const SizedBox(height: 16),
 
+              // فیلد شماره موبایل
               _buildTextField(
                 controller: _phoneController,
                 hint: 'شماره موبایل',
@@ -104,6 +127,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
               ),
               const SizedBox(height: 16),
 
+              // فیلد کلمه عبور
               _buildTextField(
                 controller: _passwordController,
                 hint: 'رمز عبور',
@@ -112,17 +136,19 @@ class _SignupPageState extends ConsumerState<SignupPage> {
               ),
               const SizedBox(height: 32),
 
+              // دکمه اصلی ثبت‌نام به رنگ سبز تم
               SizedBox(
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
                   onPressed: authState.isLoading ? null : _register,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
+                    backgroundColor: const Color(0xff0c4d3b), // رنگ سبز اصلی
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
+                    elevation: 1,
                   ),
                   child: authState.isLoading
                       ? const SizedBox(
@@ -134,7 +160,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                           ),
                         )
                       : const Text(
-                          'ثبت‌نام و دریافت کد',
+                          'ثبت‌نام',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -143,6 +169,8 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                 ),
               ),
               const SizedBox(height: 32),
+
+              // بخش هدایت به صفحه ورود
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -152,10 +180,10 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                   ),
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: Text(
+                    child: const Text(
                       'وارد شوید',
                       style: TextStyle(
-                        color: theme.colorScheme.primary,
+                        color: Color(0xfffc94a1), // رنگ صورتی تم (Accent)
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -169,7 +197,6 @@ class _SignupPageState extends ConsumerState<SignupPage> {
     );
   }
 
-  // دقیقاً مشابه متد _buildTextField در فایل login_page (برای جلوگیری از طولانی شدن کد اینجا تکرار نکردم، همان را کپی کنید)
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
@@ -178,19 +205,20 @@ class _SignupPageState extends ConsumerState<SignupPage> {
     TextInputType keyboardType = TextInputType.text,
     int? maxLength,
   }) {
-    final theme = Theme.of(context);
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
       obscureText: isPassword && !_isPasswordVisible,
       maxLength: maxLength,
+      style: const TextStyle(fontSize: 16),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
         counterText: "",
         filled: true,
         fillColor: Colors.white,
-        prefixIcon: Icon(icon, color: theme.colorScheme.primary),
+        prefixIcon: Icon(icon, color: const Color(0xff0c4d3b)),
+        // رنگ آیکون سبز تم
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
@@ -207,7 +235,10 @@ class _SignupPageState extends ConsumerState<SignupPage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+          borderSide: const BorderSide(
+            color: Color(0xff0c4d3b),
+            width: 2,
+          ), // بوردر سبز در فوکوس
         ),
       ),
     );

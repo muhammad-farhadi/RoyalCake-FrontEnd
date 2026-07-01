@@ -31,33 +31,28 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     if (phone.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لطفاً تمامی فیلدها را پر کنید.')),
+        const SnackBar(content: Text('لطفاً تمام فیلدها را پر کنید.')),
       );
       return;
     }
 
-    // دریافت وضعیت لاگین به جای فقط یک بولین (true/false)
     final status = await ref.read(authProvider.notifier).login(phone, password);
-
     if (!mounted) return;
 
     if (status == LoginStatus.success) {
-      // لاگین موفق -> هدایت به صفحه اصلی
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const HomePage()),
         (route) => false,
       );
     } else if (status == LoginStatus.unverified) {
-      // حساب تایید نشده -> ارسال مجدد کد و رفتن به صفحه OTP
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'حساب کاربری شما تایید نشده است. در حال ارسال مجدد کد...',
+            'کد تایید قبلاً ارسال نشده یا منقضی شده، ارسال مجدد...',
           ),
         ),
       );
-
       final isResent = await ref.read(authProvider.notifier).resendOtp(phone);
       if (isResent && mounted) {
         Navigator.push(
@@ -69,18 +64,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         );
       } else if (mounted) {
         final error = ref.read(authProvider).error;
-        if (error != null)
+        if (error != null) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text(error)));
+        }
       }
     } else {
-      // خطای معمولی (رمز اشتباه و ...)
       final error = ref.read(authProvider).error;
-      if (error != null)
+      if (error != null) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(error)));
+      }
     }
   }
 
@@ -90,27 +86,46 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
+      backgroundColor: const Color(0xfffcf8f8),
+      // استفاده از رنگ پس‌زمینه لایت اپ
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            // چیدمان عمودی به صورت وسط‌چین
             children: [
               const SizedBox(height: 40),
               Center(child: Image.asset('assets/images/logo.png', height: 120)),
               const SizedBox(height: 40),
-              Text('خوش آمدید!', style: theme.textTheme.headlineLarge),
+
+              // هدر صفحه کاملاً وسط‌چین شده
+              Center(
+                child: Text(
+                  'خوش آمدید!',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    color: const Color(0xff0c4d3b), // رنگ سبز تیره تم
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
               const SizedBox(height: 8),
-              Text(
-                'برای ورود، شماره موبایل و رمز عبور خود را وارد کنید.',
-                style: theme.textTheme.bodyMedium,
+              Center(
+                child: Text(
+                  'لطفاً برای ورود به حساب کاربری خود اطلاعات زیر را وارد کنید',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xff2c3e50), // رنگ متن تیره تم
+                  ),
+                ),
               ),
               const SizedBox(height: 32),
 
               // فیلد شماره موبایل
               _buildTextField(
                 controller: _phoneController,
-                hint: 'شماره موبایل (مثال: 09123456789)',
+                hint: 'شماره موبایل (مانند: 09123456789)',
                 icon: Icons.phone_iphone,
                 keyboardType: TextInputType.phone,
                 maxLength: 11,
@@ -125,15 +140,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 isPassword: true,
               ),
 
-              // فراموشی رمز عبور (فعلاً غیرفعال)
+              // دکمه فراموشی رمز عبور (تراز شده بر اساس طراحی صورتی/اکسنت)
               Align(
-                alignment: Alignment.centerLeft,
+                alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () {
                     showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
-                      // برای بالا آمدن پاپ‌آپ با کیبورد الزامی است
                       shape: const RoundedRectangleBorder(
                         borderRadius: BorderRadius.vertical(
                           top: Radius.circular(24),
@@ -143,30 +157,31 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       builder: (context) => const ForgotPasswordSheet(),
                     );
                   },
-                  child: Text(
+                  child: const Text(
                     'رمز عبور خود را فراموش کرده‌اید؟',
                     style: TextStyle(
-                      color: theme.colorScheme.secondary,
+                      color: Color(0xfffc94a1), // رنگ صورتی تم (Accent)
                       fontSize: 13,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ),
               const SizedBox(height: 24),
 
-              // دکمه ورود
+              // دکمه اصلی ورود به رنگ سبز تم
               SizedBox(
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
                   onPressed: authState.isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
+                    backgroundColor: const Color(0xff0c4d3b), // رنگ سبز اصلی
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    elevation: 2,
+                    elevation: 1,
                   ),
                   child: authState.isLoading
                       ? const SizedBox(
@@ -178,7 +193,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           ),
                         )
                       : const Text(
-                          'ورود به حساب',
+                          'ورود',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -186,14 +201,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         ),
                 ),
               ),
-
               const SizedBox(height: 32),
-              // دکمه انتقال به ثبت‌نام
+
+              // بخش ناوبری به صفحه ثبت‌نام
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'حساب کاربری ندارید؟',
+                    'هنوز ثبت‌نام نکرده‌اید؟',
                     style: theme.textTheme.bodyMedium,
                   ),
                   TextButton(
@@ -203,10 +218,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         builder: (context) => const SignupPage(),
                       ),
                     ),
-                    child: Text(
-                      'ثبت‌نام کنید',
+                    child: const Text(
+                      'ایجاد حساب کاربری',
                       style: TextStyle(
-                        color: theme.colorScheme.primary,
+                        color: Color(0xff0c4d3b), // رنگ سبز اصلی
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -228,7 +243,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     TextInputType keyboardType = TextInputType.text,
     int? maxLength,
   }) {
-    final theme = Theme.of(context);
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
@@ -241,7 +255,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         counterText: "",
         filled: true,
         fillColor: Colors.white,
-        prefixIcon: Icon(icon, color: theme.colorScheme.primary),
+        prefixIcon: Icon(icon, color: const Color(0xff0c4d3b)),
+        // رنگ آیکون سبز تم
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
@@ -258,7 +273,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+          borderSide: const BorderSide(
+            color: Color(0xff0c4d3b),
+            width: 2,
+          ), // بوردر سبز در فوکوس
         ),
       ),
     );

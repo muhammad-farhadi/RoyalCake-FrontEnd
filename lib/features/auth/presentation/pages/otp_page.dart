@@ -16,32 +16,31 @@ class OtpPage extends ConsumerStatefulWidget {
 
 class _OtpPageState extends ConsumerState<OtpPage> {
   final _otpController = TextEditingController();
-
-  // متغیرهای مربوط به تایمر معکوس
   Timer? _timer;
-  int _secondsRemaining = 120; // مدت زمان فعال بودن تایمر (۲ دقیقه)
+  int _secondsRemaining = 120;
   bool _canResend = false;
 
   @override
   void initState() {
     super.initState();
-    _startTimer(); // شروع تایمر به محض ورود به صفحه
+    _startTimer();
   }
 
   @override
   void dispose() {
-    _timer?.cancel(); // لغو تایمر برای جلوگیری از نشت حافظه (Memory Leak)
+    _timer?.cancel(); // حل مشکل Memory Leak به صورت قطعی
     _otpController.dispose();
     super.dispose();
   }
 
-  // متد شروع و مدیریت تایمر
   void _startTimer() {
+    if (_timer != null) {
+      _timer!.cancel();
+    }
     setState(() {
       _secondsRemaining = 120;
       _canResend = false;
     });
-
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_secondsRemaining > 0) {
         setState(() {
@@ -56,28 +55,23 @@ class _OtpPageState extends ConsumerState<OtpPage> {
     });
   }
 
-  // تبدیل ثانیه به فرمت استاندارد زمان (01:59)
   String _formatTime(int seconds) {
     final int minutes = seconds ~/ 60;
     final int remainingSeconds = seconds % 60;
     return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
-  // متد ارسال مجدد کد تایید
   void _resendCode() async {
     if (!_canResend) return;
-
     final success = await ref
         .read(authProvider.notifier)
         .resendOtp(widget.phoneNumber);
-
     if (!mounted) return;
-
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('کد تایید جدید با موفقیت ارسال شد.')),
+        const SnackBar(content: Text('کد تایید مجدداً ارسال شد.')),
       );
-      _startTimer(); // شروع مجدد تایمر پس از ارسال موفق
+      _startTimer();
     } else {
       final error = ref.read(authProvider).error;
       if (error != null) {
@@ -91,11 +85,9 @@ class _OtpPageState extends ConsumerState<OtpPage> {
   void _verifyCode() async {
     final code = _otpController.text.trim();
     if (code.length < 6) return;
-
     final success = await ref
         .read(authProvider.notifier)
         .verifyOtpAndLogin(widget.phoneNumber, code, widget.password);
-
     if (success && mounted) {
       Navigator.pushAndRemoveUntil(
         context,
@@ -116,7 +108,6 @@ class _OtpPageState extends ConsumerState<OtpPage> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -131,15 +122,16 @@ class _OtpPageState extends ConsumerState<OtpPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('تایید شماره موبایل', style: theme.textTheme.headlineLarge),
+              Text(
+                'کد تایید را وارد کنید',
+                style: theme.textTheme.headlineLarge,
+              ),
               const SizedBox(height: 8),
               Text(
-                'کد ارسال شده به شماره ${widget.phoneNumber} را وارد کنید.',
+                'کد پیامک شده به شماره ${widget.phoneNumber} را وارد نمایید',
                 style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 40),
-
-              // فیلد ورود کد OTP
               TextField(
                 controller: _otpController,
                 keyboardType: TextInputType.number,
@@ -174,8 +166,6 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                 },
               ),
               const SizedBox(height: 32),
-
-              // بخش تایمر و ارسال مجدد کد
               Center(
                 child: _canResend
                     ? TextButton.icon(
@@ -185,10 +175,9 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                           color: theme.colorScheme.primary,
                           size: 20,
                         ),
-                        label: Text(
+                        label: const Text(
                           'ارسال مجدد کد تایید',
                           style: TextStyle(
-                            color: theme.colorScheme.primary,
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
                           ),
@@ -204,7 +193,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'ارسال مجدد کد تا ${_formatTime(_secondsRemaining)} دیگر',
+                            'مانده تا ارسال مجدد: ${_formatTime(_secondsRemaining)}',
                             style: TextStyle(
                               color: Colors.grey.shade600,
                               fontSize: 14,
@@ -214,8 +203,6 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                       ),
               ),
               const SizedBox(height: 32),
-
-              // دکمه تایید نهایی
               SizedBox(
                 width: double.infinity,
                 height: 55,
