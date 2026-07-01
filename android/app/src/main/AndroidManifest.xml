@@ -43,4 +43,17 @@
             <data android:mimeType="text/plain" />
         </intent>
     </queries>
+    <queries>
+        <!-- دسترسی برای باز کردن لینک‌های وب در مرورگر گوشی -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="http" />
+        </intent>
+    </queries>
 </manifest>

@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart'
+    show kIsWeb; // ۱. اضافه شدن این خط برای تشخیص خودکار حالت وب
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart'; // حتماً این پکیج را به پابس‌پک اضافه کنید
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../providers/cart_provider.dart';
 
@@ -53,7 +55,9 @@ class _CartPageState extends ConsumerState<CartPage>
     return '$farsiPrice تومان';
   }
 
-  // مدیریت اتصال به درگاه واقعی زرین‌پال
+  // ===================================================================
+  // تابع اصلاح‌شده و منعطف برای باز کردن لینک درگاه در وب و اندروید
+  // ===================================================================
   Future<void> _handleCheckout() async {
     setState(() => _isProcessing = true);
     try {
@@ -66,7 +70,7 @@ class _CartPageState extends ConsumerState<CartPage>
 
       if (!mounted) return;
 
-      // ۲. وضعیت فاکتور رایگان (بدون نیاز به لینک درگاه)
+      // ۲. وضعیت فاکتور رایگان
       if (paymentUrl == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -81,19 +85,29 @@ class _CartPageState extends ConsumerState<CartPage>
         return;
       }
 
-      // ۳. ارجاع کاربر به مرورگر جهت پرداخت فاکتور غیر رایگان در زرین‌پال
+      // ۳. ارجاع مستقیم کاربر به درگاه زرین‌پال بدون شرط آسیب‌پذیر canLaunch
       final Uri url = Uri.parse(paymentUrl);
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: AppColors.primary,
-            content: Text('در حال انتقال به درگاه پرداخت زرین‌پال...'),
-          ),
+      try {
+        // باز کردن لینک متناسب با پلتفرم وب یا اندروید
+        await launchUrl(
+          url,
+          mode: kIsWeb
+              ? LaunchMode.platformDefault
+              : LaunchMode.externalApplication,
         );
-      } else {
-        throw Exception('امکان باز کردن مرورگر جهت اتصال به درگاه وجود ندارد.');
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: AppColors.primary,
+              content: Text('در حال انتقال به درگاه پرداخت زرین‌پال...'),
+            ),
+          );
+        }
+      } catch (_) {
+        // متد کمکی زاپاس در صورت بروز هرگونه خطای پلتفرمی
+        await launchUrl(url);
       }
     } catch (e) {
       if (mounted) {
@@ -133,6 +147,7 @@ class _CartPageState extends ConsumerState<CartPage>
         );
       }
     } finally {
+      // <--- اصلاح املا به finally
       if (mounted) setState(() => _isDeleting = false);
     }
   }
