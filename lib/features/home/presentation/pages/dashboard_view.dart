@@ -6,6 +6,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../courses/presentation/pages/course_detail_page.dart';
 import '../../../gallery/presentation/pages/gallery_page.dart';
+import '../widgets/highlights_bar.dart';
 import '../widgets/home_widgets.dart';
 import '../../providers/home_provider.dart';
 
@@ -28,6 +29,7 @@ class DashboardView extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const HighlightsBar(),
           const SizedBox(height: 12),
           const BannerSlider(),
 
