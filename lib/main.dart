@@ -4,11 +4,10 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/home/presentation/pages/home_page.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() {
-  runApp(
-    // ProviderScope برای مدیریت استیت‌های Riverpod الزامی است
-    const ProviderScope(child: MyApp()),
-  );
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -21,7 +20,8 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       locale: const Locale('fa', 'IR'),
       theme: AppTheme.lightTheme,
-      home: HomePage(),
+      navigatorKey: navigatorKey,
+      home: const HomePage(),
     );
   }
 }

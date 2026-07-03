@@ -1,4 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import '../../main.dart'; // 🔴 حتماً هدر یا فایل main.dart را برای دسترسی به navigatorKey ایمپورت کنید
+import '../../features/auth/presentation/pages/login_page.dart'; // 🔴 ایمپورت صفحه لاگین برای انتقال کاربر
 import '../constants/app_constants.dart';
 import 'token_storage.dart';
 
@@ -12,7 +15,6 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    // قبل از ارسال هر ریکوئست، توکن را به هدر اضافه می‌کنیم
     final accessToken = await TokenStorage.getAccessToken();
     if (accessToken != null) {
       options.headers['Authorization'] = 'Bearer $accessToken';
@@ -22,33 +24,26 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    // اگر خطای 401 (منقضی شدن توکن) دریافت کردیم
     if (err.response?.statusCode == 401) {
       final refreshToken = await TokenStorage.getRefreshToken();
 
       if (refreshToken != null) {
         try {
-          // یک نمونه جدید دیو می‌سازیم تا توی لوپ بی‌نهایت نیفتیم
           final refreshDio = Dio(BaseOptions(baseUrl: AppConstants.baseUrl));
 
-          // درخواست رفرش توکن
           final response = await refreshDio.post(
             '/api/v1/users/refresh',
             data: {'refresh_token': refreshToken},
           );
 
-          // گرفتن توکن‌های جدید
           final newAccessToken = response.data['access_token'];
           final newRefreshToken = response.data['refresh_token'];
 
-          // ذخیره توکن‌های جدید در حافظه
           await TokenStorage.saveTokens(newAccessToken, newRefreshToken);
 
-          // آپدیت کردن هدر درخواست فیلد شده با توکن جدید
           err.requestOptions.headers['Authorization'] =
               'Bearer $newAccessToken';
 
-          // ارسال مجدد همان درخواستی که فیلد شده بود
           final retryOptions = Options(
             method: err.requestOptions.method,
             headers: err.requestOptions.headers,
@@ -61,12 +56,66 @@ class AuthInterceptor extends Interceptor {
             queryParameters: err.requestOptions.queryParameters,
           );
 
-          // برگرداندن دیتای موفق به اپلیکیشن (کاربر اصلاً متوجه ارور 401 نمیشه)
           return handler.resolve(retryResponse);
         } catch (e) {
-          // اگر رفرش توکن هم منقضی شده بود -> خروج اجباری کاربر
           await TokenStorage.clearTokens();
-          // اینجا می‌توانید یک رویداد بفرستید تا کاربر به صفحه لاگین پرتاب شود
+          String errorMessage =
+              "نشست شما منقضی شده است.در صورت نیاز مجدد وارد حساب کاربری خود شوید.";
+          if (e is DioException && e.response?.data != null) {
+            final data = e.response?.data;
+            if (data is Map && data.containsKey('detail')) {
+              errorMessage = data['detail'].toString();
+            }
+          }
+          final context = navigatorKey.currentContext;
+          if (context != null) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (BuildContext dialogContext) {
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  title: const Text(
+                    "خروج از حساب کاربری",
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                  content: Text(
+                    errorMessage,
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(fontSize: 15),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LoginPage(),
+                          ),
+                          (route) => false,
+                        );
+                      },
+                      child: const Text(
+                        "ورود مجدد",
+                        style: TextStyle(
+                          color: Color(0xff0c4d3b),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          }
+
           return handler.next(err);
         }
       }
