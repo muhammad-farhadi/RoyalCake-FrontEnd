@@ -1,8 +1,12 @@
+import 'package:flutter/foundation.dart'; // اضافه شده برای تشخیص پلتفرم وب/اندروید
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../home/providers/home_provider.dart';
+
+// فرض بر این است که فایل ساخته شده را اینجا ایمپورت می‌کنید:
+import 'universal_image.dart';
 
 class GalleryPage extends ConsumerWidget {
   const GalleryPage({super.key});
@@ -95,20 +99,18 @@ class GalleryPage extends ConsumerWidget {
                       child: Stack(
                         children: [
                           Positioned.fill(
-                            child: Hero(
-                              tag: heroTag,
-                              child: Image.network(
-                                fullImageUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    const Center(
-                                      child: Icon(
-                                        Icons.broken_image_outlined,
-                                        color: Colors.black26,
-                                      ),
+                            child: kIsWeb
+                                ? UniversalImage(
+                                    imageUrl: fullImageUrl,
+                                    fit: BoxFit.cover,
+                                  )
+                                : Hero(
+                                    tag: heroTag,
+                                    child: UniversalImage(
+                                      imageUrl: fullImageUrl,
+                                      fit: BoxFit.cover,
                                     ),
-                              ),
-                            ),
+                                  ),
                           ),
                           Positioned(
                             bottom: 0,
@@ -239,20 +241,15 @@ class FullScreenImageViewer extends StatelessWidget {
             child: InteractiveViewer(
               minScale: 0.5,
               maxScale: 4.0,
-              child: Hero(
-                tag: heroTag,
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const Center(
-                    child: Icon(
-                      Icons.broken_image_outlined,
-                      color: Colors.white54,
-                      size: 60,
+              child: kIsWeb
+                  ? UniversalImage(imageUrl: imageUrl, fit: BoxFit.contain)
+                  : Hero(
+                      tag: heroTag,
+                      child: UniversalImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.contain,
+                      ),
                     ),
-                  ),
-                ),
-              ),
             ),
           ),
           Positioned(
@@ -265,7 +262,9 @@ class FullScreenImageViewer extends StatelessWidget {
                 IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const Offset(0, 0) == Offset.zero
+                        ? const EdgeInsets.all(8)
+                        : const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.5),
                       shape: BoxShape.circle,

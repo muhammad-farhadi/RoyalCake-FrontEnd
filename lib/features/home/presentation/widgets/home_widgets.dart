@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart' show kIsWeb; // اضافه شد
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../gallery/presentation/pages/universal_image.dart';
 
 // ================== بخش ویژگی‌های متمایز ==================
 class FeatureItem extends StatelessWidget {
@@ -22,7 +24,7 @@ class FeatureItem extends StatelessWidget {
             fontSize: 10,
             fontWeight: FontWeight.bold,
             fontFamily: 'Samim',
-            color: Colors.black.withValues(alpha: 0.7), // ✅ دقیقاً مثل کد شما
+            color: Colors.black.withValues(alpha: 0.7),
           ),
         ),
       ],
@@ -84,7 +86,6 @@ class CourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // گرفتن لینک کامل به کمک متد هوشمند مرکزی
     final fullImageUrl = AppConstants.getFullImageUrl(imageUrl);
 
     return Container(
@@ -114,36 +115,12 @@ class CourseCard extends StatelessWidget {
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(18),
                   ),
-                  child: Image.network(
-                    fullImageUrl,
-                    width: double.infinity,
+                  child: UniversalImage(
+                    // اصلاح شد: استفاده از کامپوننت سراسری و بهینه
+                    imageUrl: fullImageUrl,
                     fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            AppColors.accent.withValues(alpha: 0.5),
-                          ),
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded /
-                                    (loadingProgress.expectedTotalBytes ?? 1)
-                              : null,
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: AppColors.accent.withValues(alpha: 0.15),
-                        child: const Center(
-                          child: Icon(
-                            Icons.image_outlined,
-                            color: AppColors.accent,
-                            size: 30,
-                          ),
-                        ),
-                      );
-                    },
+                    width: double.infinity,
+                    height: double.infinity,
                   ),
                 ),
               ),

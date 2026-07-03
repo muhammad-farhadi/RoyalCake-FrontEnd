@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart' show kIsWeb; // اضافه شد
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../gallery/presentation/pages/universal_image.dart';
 import '../../../home/providers/home_provider.dart';
 import 'course_detail_page.dart';
 
@@ -63,11 +65,9 @@ class CoursesPage extends ConsumerWidget {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: Material(
-                      // اضافه کردن Material برای افکت کلیک (Ripple Effect)
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () {
-                          // هدایت به صفحه جزئیات با ارسال آیدی
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -78,13 +78,14 @@ class CoursesPage extends ConsumerWidget {
                         },
                         child: Row(
                           children: [
-                            // ۱. بخش تصویر
+                            // ۱. بخش تصویر بهینه شده
                             Container(
                               width: 130,
                               height: 150,
                               color: Colors.grey.shade100,
-                              child: Image.network(
-                                fullImageUrl,
+                              child: UniversalImage(
+                                // اصلاح شد
+                                imageUrl: fullImageUrl,
                                 fit: BoxFit.cover,
                               ),
                             ),
@@ -98,7 +99,6 @@ class CoursesPage extends ConsumerWidget {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    // عنوان و سطح
                                     Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
@@ -143,7 +143,6 @@ class CoursesPage extends ConsumerWidget {
                                     ),
                                     const SizedBox(height: 12),
 
-                                    // اطلاعات
                                     Row(
                                       children: [
                                         const Icon(
@@ -164,7 +163,6 @@ class CoursesPage extends ConsumerWidget {
                                     ),
                                     const SizedBox(height: 14),
 
-                                    // قیمت و دکمه
                                     Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
@@ -180,7 +178,6 @@ class CoursesPage extends ConsumerWidget {
                                         ),
                                         ElevatedButton(
                                           onPressed: () {
-                                            // همین مسیرِ کلیک برای دکمه هم
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
