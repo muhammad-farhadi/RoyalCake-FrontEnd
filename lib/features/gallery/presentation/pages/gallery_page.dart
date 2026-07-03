@@ -103,12 +103,16 @@ class GalleryPage extends ConsumerWidget {
                                 ? UniversalImage(
                                     imageUrl: fullImageUrl,
                                     fit: BoxFit.cover,
+                                    cacheWidth:
+                                        400, // 🔴 اضافه کردن محدودیت رم برای وب
                                   )
                                 : Hero(
                                     tag: heroTag,
                                     child: UniversalImage(
                                       imageUrl: fullImageUrl,
                                       fit: BoxFit.cover,
+                                      cacheWidth:
+                                          400, // 🔴 اضافه کردن محدودیت رم برای اندروید
                                     ),
                                   ),
                           ),

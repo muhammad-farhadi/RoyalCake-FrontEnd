@@ -39,6 +39,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/icons/
     - assets/images/cake/             # برای عکس‌های دوره کیک
     - assets/images/sweet/            # برای عکس‌های دوره شیرینی
     - assets/images/cheesecake/       # برای عکس‌های دوره چیزکیک

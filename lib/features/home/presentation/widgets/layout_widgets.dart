@@ -5,6 +5,7 @@ import '../../../orders/presentation/pages/cart_page.dart';
 import '../../../orders/providers/cart_provider.dart';
 import '../../../support/providers/chat_provider.dart';
 import '../../providers/home_provider.dart';
+import '../pages/about_us_page.dart';
 import 'home_widgets.dart'; // برای BottomNavShortcut
 import '../../../auth/presentation/pages/login_page.dart'; // صفحه لاگین
 import '../../../auth/providers/auth_provider.dart'; // ایمپورت پرووایدر جدید لاگین
@@ -273,7 +274,25 @@ class AppDrawer extends ConsumerWidget {
               ref.read(bottomNavIndexProvider.notifier).state = 6;
             },
           ),
+          ListTile(
+            leading: const Icon(
+              Icons.info_outline_rounded,
+              color: AppColors.primary,
+            ),
+            title: const Text(
+              'درباره ما و ارتباط',
+              style: TextStyle(fontFamily: 'Samim'),
+            ),
+            onTap: () {
+              Navigator.pop(context); // بستن دراور
 
+              // هدایت شکیل به صفحه درباره ما با Navigator.push (بدون نیاز به راوت نام‌گذاری شده)
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AboutUsPage()),
+              );
+            },
+          ),
           if (isLoggedIn) ...[
             const Divider(),
             ListTile(
@@ -308,7 +327,9 @@ class MainBottomNav extends ConsumerWidget {
     final currentTab = ref.watch(bottomNavIndexProvider);
     final isLoggedIn = ref.watch(authProvider).isAuthenticated;
 
-    final unreadCount = ref.watch(chatProvider.select((state) => state.unreadCount));
+    final unreadCount = ref.watch(
+      chatProvider.select((state) => state.unreadCount),
+    );
 
     void handleProtected(VoidCallback action) {
       if (isLoggedIn) {
@@ -401,6 +422,7 @@ class MainBottomNav extends ConsumerWidget {
     );
   }
 }
+
 // ==========================================
 // ۴. اپ‌بار اصلی (Main AppBar)
 // ==========================================

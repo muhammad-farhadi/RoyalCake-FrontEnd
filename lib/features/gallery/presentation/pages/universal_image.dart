@@ -7,6 +7,8 @@ class UniversalImage extends StatelessWidget {
   final double? width;
   final double? height;
   final Widget? errorWidget;
+  final int?
+  cacheWidth; // 🔴 اضافه شدن پارامتر کش سایز برای جلوگیری از کرش سافاری
 
   const UniversalImage({
     super.key,
@@ -15,11 +17,11 @@ class UniversalImage extends StatelessWidget {
     this.width,
     this.height,
     this.errorWidget,
+    this.cacheWidth, // 🔴 مقداردهی
   });
 
   @override
   Widget build(BuildContext context) {
-    // ویجت پایه خطا
     final defaultError =
         errorWidget ??
         const Center(
@@ -27,12 +29,13 @@ class UniversalImage extends StatelessWidget {
         );
 
     if (kIsWeb) {
-      // رندر بهینه پلتفرم وب در نسخه‌های جدید فلاتر برای جلوگیری از پر شدن رم سافاری آیفون
       return Image.network(
         imageUrl,
         fit: fit,
         width: width,
         height: height,
+        cacheWidth: cacheWidth,
+        // 🔴 اعمال کش سایز در وب
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
           return const Center(
@@ -46,12 +49,13 @@ class UniversalImage extends StatelessWidget {
         errorBuilder: (context, error, stackTrace) => defaultError,
       );
     } else {
-      // رندر بومی و سریع برای خروجی اندروید و ویندوز
       return Image.network(
         imageUrl,
         fit: fit,
         width: width,
         height: height,
+        cacheWidth: cacheWidth,
+        // 🔴 اعمال کش سایز در اندروید (برای روانی بیشتر اسکرول)
         errorBuilder: (context, error, stackTrace) => defaultError,
       );
     }
