@@ -125,17 +125,18 @@ void showLoginRequiredBottomSheet(BuildContext context, WidgetRef ref) {
 // ==========================================
 // ۲. منوی کشویی (Drawer)
 // ==========================================
+// ==========================================
+// ۲. منوی کشویی (Drawer) - اصلاح شده برای اضافه شدن دکمه نظرات
+// ==========================================
 class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // خواندن وضعیت از پرووایدر اصلی احراز هویت
     final authState = ref.watch(authProvider);
     final isLoggedIn = authState.isAuthenticated;
     final userInfo = authState.userInfo;
 
-    // استخراج اسم و موبایل برای نمایش (در صورت لاگین بودن)
     final userName = userInfo?['full_name'] ?? 'هنرجوی گرامی';
     final userPhone = userInfo?['phone_number'] ?? '';
 
@@ -173,7 +174,6 @@ class AppDrawer extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  // اگر لاگین بود اسم کاربر رو نشون بده
                   isLoggedIn ? userName : 'رویال کیک',
                   style: const TextStyle(
                     color: Colors.white,
@@ -184,7 +184,6 @@ class AppDrawer extends ConsumerWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  // اگر لاگین بود شماره موبایل کاربر رو نشون بده
                   isLoggedIn ? userPhone : 'آکادمی تخصصی آموزش کیک و شیرینی',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.75),
@@ -208,9 +207,8 @@ class AppDrawer extends ConsumerWidget {
               ),
             ),
             onTap: () {
-              Navigator.pop(context); // فقط بستن دراور
+              Navigator.pop(context);
               if (!isLoggedIn) {
-                // اگر لاگین نیست، مستقیم بره به صفحه لاگین
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -231,13 +229,10 @@ class AppDrawer extends ConsumerWidget {
               style: TextStyle(fontFamily: 'Samim'),
             ),
             onTap: () {
-              // تغییر مهم: بستن دراور و تمام صفحات باز شده رویی
               Navigator.of(context).popUntil((route) => route.isFirst);
-
               if (!isLoggedIn) {
                 showLoginRequiredBottomSheet(context, ref);
               } else {
-                // تنظیم ایندکس روی عدد 4
                 ref.read(bottomNavIndexProvider.notifier).state = 4;
               }
             },
@@ -252,19 +247,33 @@ class AppDrawer extends ConsumerWidget {
               style: TextStyle(fontFamily: 'Samim'),
             ),
             onTap: () {
-              // تغییر مهم: بستن دراور و تمام صفحات باز شده رویی
               Navigator.of(context).popUntil((route) => route.isFirst);
-
               if (!isLoggedIn) {
                 showLoginRequiredBottomSheet(context, ref);
               } else {
-                // تنظیم ایندکس روی عدد 5
                 ref.read(bottomNavIndexProvider.notifier).state = 5;
               }
             },
           ),
 
-          // اضافه کردن دکمه خروج اگر کاربر لاگین بود
+          // 🔴 دکمه جدید نظرات هنرجویان در منوی کشویی کنار صفحه
+          ListTile(
+            leading: const Icon(
+              Icons.comment_bank_outlined,
+              color: AppColors.primary,
+            ),
+            title: const Text(
+              'نتایج هنرجویان',
+              style: TextStyle(fontFamily: 'Samim'),
+            ),
+            onTap: () {
+              // بستن تمام صفحات رویی و برگشت به اولین صفحه لایوت
+              Navigator.of(context).popUntil((route) => route.isFirst);
+              // انتقال مستقیم کاربر به تب شماره ۶ (صفحه نظرات)
+              ref.read(bottomNavIndexProvider.notifier).state = 6;
+            },
+          ),
+
           if (isLoggedIn) ...[
             const Divider(),
             ListTile(
@@ -299,7 +308,6 @@ class MainBottomNav extends ConsumerWidget {
     final currentTab = ref.watch(bottomNavIndexProvider);
     final isLoggedIn = ref.watch(authProvider).isAuthenticated;
 
-    // خواندن تعداد پیام‌های نخوانده از چت پرووایدر
     final unreadCount = ref.watch(chatProvider.select((state) => state.unreadCount));
 
     void handleProtected(VoidCallback action) {
@@ -345,6 +353,19 @@ class MainBottomNav extends ConsumerWidget {
               ref.read(bottomNavIndexProvider.notifier).state = 1;
             },
           ),
+
+          // 🔴 اضافه شدن دکمه نظرات هنرجویان به نوار ناوبری پایین صفحه (تب ۶)
+          BottomNavShortcut(
+            icon: Icons.rate_review_outlined,
+            label: 'نتایج هنرجویان',
+            color: Colors.grey.shade400,
+            isActive: currentTab == 6,
+            onTap: () {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+              ref.read(bottomNavIndexProvider.notifier).state = 6;
+            },
+          ),
+
           BottomNavShortcut(
             icon: Icons.image_rounded,
             label: 'گالری',
@@ -355,7 +376,6 @@ class MainBottomNav extends ConsumerWidget {
               ref.read(bottomNavIndexProvider.notifier).state = 2;
             },
           ),
-          // اضافه کردن Badge برای پشتیبانی
           Badge(
             isLabelVisible: unreadCount > 0,
             label: Text(
@@ -372,7 +392,6 @@ class MainBottomNav extends ConsumerWidget {
               onTap: () => handleProtected(() {
                 Navigator.of(context).popUntil((route) => route.isFirst);
                 ref.read(bottomNavIndexProvider.notifier).state = 3;
-                // صفر کردن بج وقتی وارد صفحه چت می‌شویم
                 ref.read(chatProvider.notifier).markAsRead();
               }),
             ),
@@ -382,7 +401,6 @@ class MainBottomNav extends ConsumerWidget {
     );
   }
 }
-
 // ==========================================
 // ۴. اپ‌بار اصلی (Main AppBar)
 // ==========================================

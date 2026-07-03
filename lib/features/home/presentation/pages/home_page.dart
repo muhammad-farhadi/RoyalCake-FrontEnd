@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../courses/presentation/pages/course_reviews_page.dart';
 import '../../../courses/presentation/pages/my_courses_page.dart';
 import '../../../gallery/presentation/pages/gallery_page.dart';
 import '../../../courses/presentation/pages/courses_page.dart';
@@ -33,7 +34,9 @@ class HomePage extends ConsumerWidget {
               : 'رویال کیک',
         ),
         drawer: const AppDrawer(),
-        body: currentTab == 5
+        body: currentTab == 6
+            ? const CourseReviewsPage() // 🔴 تب جدید نظرات هنرجویان
+            : currentTab == 5
             ? const MyPaymentsPage()
             : currentTab == 4
             ? const MyCoursesPage()
