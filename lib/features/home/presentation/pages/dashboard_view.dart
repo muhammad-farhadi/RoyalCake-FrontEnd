@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:flutter/foundation.dart'; // برای kIsWeb
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../courses/presentation/pages/course_detail_page.dart';
 import '../../../gallery/presentation/pages/gallery_page.dart';
+import '../../../gallery/presentation/pages/universal_image.dart';
 import '../widgets/highlights_bar.dart';
 import '../widgets/home_widgets.dart';
 import '../../providers/home_provider.dart';
@@ -69,39 +71,42 @@ class DashboardView extends ConsumerWidget {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 24),
-            color: Colors.white, // background-color: #ffffff;
+            color: Colors.white,
             margin: const EdgeInsets.only(bottom: 20),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // استفاده از Center و Row جهت وسط‌چین کردن کامل دایره‌ها در انواع موبایل
                 Center(
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center, // وسط‌چین کردن المان‌های داخل سطر
+                      mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildIntroCourseItem(
-                          imageUrl: '/static/img/20230829_150959_E3E8C2F7-32A7-47DB-B707-8A377F5B7F2D.webp',
+                          imageUrl:
+                              '/static/img/20230829_150959_E3E8C2F7-32A7-47DB-B707-8A377F5B7F2D.webp',
                           title: 'آموزش رایگان',
                           ref: ref,
                         ),
                         _buildIntroCourseItem(
-                          imageUrl: '/static/img/20230829_151140_89E97E06-CE04-4BBA-9BFB-9E110BC9FEC8.webp',
+                          imageUrl:
+                              '/static/img/20230829_151140_89E97E06-CE04-4BBA-9BFB-9E110BC9FEC8.webp',
                           title: 'دوره کیک و کوکی',
                           ref: ref,
                         ),
                         _buildIntroCourseItem(
-                          imageUrl: '/static/img/20230829_153101_E074A852-5758-4302-B7E0-203B36B34DCD.webp',
+                          imageUrl:
+                              '/static/img/20230829_153101_E074A852-5758-4302-B7E0-203B36B34DCD.webp',
                           title: 'دوره چیز کیک',
                           ref: ref,
                         ),
                         _buildIntroCourseItem(
-                          imageUrl: '/static/img/20230829_095147_72A432F7-3E40-48F7-A618-4FFCBC50095B.webp',
+                          imageUrl:
+                              '/static/img/20230829_095147_72A432F7-3E40-48F7-A618-4FFCBC50095B.webp',
                           title: 'دوره شیرینی نوروز',
                           ref: ref,
                         ),
@@ -109,9 +114,7 @@ class DashboardView extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 25), // margin-top: 25px;
-
-                // دکمه نمایش دوره‌ها (intro-btn-container) کاملاً وسط‌چین شده
+                const SizedBox(height: 25),
                 Center(
                   child: ElevatedButton(
                     onPressed: () {
@@ -120,7 +123,10 @@ class DashboardView extends ConsumerWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 40,
+                        vertical: 12,
+                      ),
                       elevation: 4,
                       shadowColor: AppColors.accent.withOpacity(0.4),
                       shape: RoundedRectangleBorder(
@@ -341,6 +347,9 @@ class DashboardView extends ConsumerWidget {
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     itemCount: displayImages.length + 1,
+                    // 🔴 جلوگیری از زنده نگه داشتن تامنیل‌های اسکرول شده برای حفاظت از رم
+                    addAutomaticKeepAlives: false,
+                    addRepaintBoundaries: false,
                     itemBuilder: (context, index) {
                       if (index == displayImages.length) {
                         return Container(
@@ -389,20 +398,25 @@ class DashboardView extends ConsumerWidget {
                       final homeHeroTag =
                           'home_gallery_image_${image['id'] ?? index}';
                       return GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          PageRouteBuilder(
-                            opaque: false,
-                            pageBuilder: (context, _, __) =>
-                                FullScreenImageViewer(
-                                  imageUrl: fullImageUrl,
-                                  title: title,
-                                  heroTag: homeHeroTag,
-                                ),
-                            transitionsBuilder: (context, anim, __, child) =>
-                                FadeTransition(opacity: anim, child: child),
-                          ),
-                        ),
+                        onTap: () {
+                          // پاکسازی رم قبل از باز کردن عکس تمام صفحه در وب
+                          if (kIsWeb)
+                            PaintingBinding.instance.imageCache.clear();
+                          Navigator.push(
+                            context,
+                            PageRouteBuilder(
+                              opaque: false,
+                              pageBuilder: (context, _, __) =>
+                                  FullScreenImageViewer(
+                                    imageUrl: fullImageUrl,
+                                    title: title,
+                                    heroTag: homeHeroTag,
+                                  ),
+                              transitionsBuilder: (context, anim, __, child) =>
+                                  FadeTransition(opacity: anim, child: child),
+                            ),
+                          );
+                        },
                         child: Container(
                           width: 110,
                           margin: const EdgeInsets.symmetric(horizontal: 6),
@@ -421,16 +435,17 @@ class DashboardView extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(16),
                             child: Hero(
                               tag: homeHeroTag,
-                              child: Image.network(
-                                fullImageUrl,
+                              // 🔴 تغییر از Image.network به UniversalImage + cacheWidth بسیار سبک (۲۰۰ پیکسل)
+                              child: UniversalImage(
+                                imageUrl: fullImageUrl,
                                 fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    const Center(
-                                      child: Icon(
-                                        Icons.image_outlined,
-                                        color: Colors.black26,
-                                      ),
-                                    ),
+                                cacheWidth: 200,
+                                errorWidget: const Center(
+                                  child: Icon(
+                                    Icons.image_outlined,
+                                    color: Colors.black26,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -449,84 +464,69 @@ class DashboardView extends ConsumerWidget {
   }
 
   // متد کمکی برای ساخت تر تمیز آیتم‌های دایره‌ای وب‌سایت (intro-course-item)
-  // متد اصلاح شده و کاملاً ریسپانسیو برای دایره‌های معرفی دوره‌ها
   Widget _buildIntroCourseItem({
     required String imageUrl,
     required String title,
     required WidgetRef ref,
   }) {
-    // گرفتن آدرس کامل عکس‌ها به همراه بیس‌یوآرال سرور شما
     final fullUrl = AppConstants.getFullImageUrl(imageUrl);
 
     return Builder(
-        builder: (context) {
-          // محاسبه عرض صفحه برای ریسپانسیو کردن ابعاد دایره‌ها
-          final screenWidth = MediaQuery.of(context).size.width;
+      builder: (context) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final circleSize = (screenWidth * 0.21).clamp(75.0, 140.0);
+        final horizontalPadding = (screenWidth * 0.02).clamp(6.0, 16.0);
 
-          // اندازه دایره به صورت پویا بین ۲۰ تا ۲۲ درصد عرض صفحه تنظیم می‌شود
-          // همچنین با استفاده از .clamp یک حداقل و حداکثر اندازه (بین 75 تا 1400) تعیین شده تا در تبلت یا ویندوز دفرمه نشود
-          final circleSize = (screenWidth * 0.21).clamp(75.0, 140.0);
-
-          // فاصله افقی بین آیتم‌ها نیز بر اساس عرض صفحه تنظیم می‌شود
-          final horizontalPadding = (screenWidth * 0.02).clamp(6.0, 16.0);
-
-          return Padding(
-            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // دایره با ابعاد کاملاً ریسپانسیو
-                Container(
-                  width: circleSize,
-                  height: circleSize,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.accent, // لبه صورتی رنگ مانند سایت
-                      width: circleSize * 0.03, // ضخامت بوردر هم متناسب با سایز دایره تغییر می‌کند
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: circleSize,
+                height: circleSize,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.accent,
+                    width: circleSize * 0.03,
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(100),
-                    child: Image.network(
-                      fullUrl,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, progress) {
-                        if (progress == null) return child;
-                        return const Center(
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.primary
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stack) =>
-                      const Icon(Icons.broken_image_outlined, color: Colors.grey),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(100),
+                  // 🔴 تغییر از Image.network به UniversalImage + cacheWidth مناسب دایره‌ها (۲۵۰ پیکسل)
+                  child: UniversalImage(
+                    imageUrl: fullUrl,
+                    fit: BoxFit.cover,
+                    cacheWidth: 250,
+                    errorWidget: const Icon(
+                      Icons.broken_image_outlined,
+                      color: Colors.grey,
                     ),
                   ),
                 ),
-                const SizedBox(height: 10),
-                // عنوان دایره با سایز فونت بهینه‌شده برای موبایل
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary, // رنگ سبز اصلی
-                    fontFamily: 'Samim',
-                  ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                  fontFamily: 'Samim',
                 ),
-              ],
-            ),
-          );
-        }
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

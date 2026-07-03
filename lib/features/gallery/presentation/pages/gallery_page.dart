@@ -15,22 +15,27 @@ class GalleryPage extends ConsumerStatefulWidget {
 }
 
 class _GalleryPageState extends ConsumerState<GalleryPage> {
-  // 🔴 تعداد عکس‌هایی که در حال حاضر مجاز به رندر شدن هستند (شروع با ۱۲)
   int _currentVisibleCount = 12;
   List<dynamic> _shuffledImages = [];
-  bool _isShuffled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (kIsWeb) {
+      // 🔴 به جای صفر، یک بافر ۲۰ تایی می‌دیم تا در اسکرول سریع، CPU ذوب نشه!
+      PaintingBinding.instance.imageCache.maximumSize = 20;
+      PaintingBinding.instance.imageCache.maximumSizeBytes =
+          20 * 1024 * 1024; // ۲۰ مگابایت رم مجاز
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // محدود کردن کش فلاتر روی وب برای امنیت رم سافاری آیفون
-    if (kIsWeb) {
-      PaintingBinding.instance.imageCache.maximumSize = 5;
-      PaintingBinding.instance.imageCache.maximumSizeBytes = 15 * 1024 * 1024;
-    }
+    // برای اطمینان بیشتر، در هر بار رندر کش قبلی را کاملاً پاک می‌کنیم
+    if (kIsWeb) PaintingBinding.instance.imageCache.clear();
 
     final galleryState = ref.watch(galleryProvider);
 
-    // حالت لودینگ اولیه
     if (galleryState.isLoading && galleryState.images.isEmpty) {
       return const Scaffold(
         backgroundColor: AppColors.lightBg,
@@ -40,7 +45,6 @@ class _GalleryPageState extends ConsumerState<GalleryPage> {
       );
     }
 
-    // حالت ارور اولیه
     if (galleryState.error != null && galleryState.images.isEmpty) {
       return Scaffold(
         backgroundColor: AppColors.lightBg,
@@ -53,24 +57,26 @@ class _GalleryPageState extends ConsumerState<GalleryPage> {
       );
     }
 
-    // 🔴 لود کردن ۲۰۰ لینک متنی از پرووایدر و شافل کردن آن‌ها فقط برای یک‌بار
+    // 🔴 حل مشکل لود بیشتر: اضافه کردن هوشمندِ عکس‌های جدید سرور به لیست شافل‌شده
     final allImages = galleryState.images;
-    if (!_isShuffled && allImages.isNotEmpty) {
-      _shuffledImages = List.from(allImages);
-      _shuffledImages.shuffle(Random()); // تصادفی کردن چینش ۲۰۰ لینک در حافظه
-      _isShuffled = true;
+    if (_shuffledImages.length < allImages.length) {
+      // فقط عکس‌های جدیدی که تازه از سرور آمده‌اند را جدا کن و شافل کن
+      final newImages = allImages.sublist(_shuffledImages.length);
+      final shuffledNew = List.from(newImages)..shuffle(Random());
+      _shuffledImages.addAll(shuffledNew); // به انتهای لیست اضافه کن
     }
 
-    // 🔴 محاسبه تعداد آیتم‌هایی که واقعاً باید در سطر و ستون رندر شوند
     final int displayCount = min(_currentVisibleCount, _shuffledImages.length);
     final bool hasMoreLocal = _currentVisibleCount < _shuffledImages.length;
+    final bool hasMoreServer = galleryState.hasMore;
 
     return Scaffold(
       backgroundColor: AppColors.lightBg,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
+        // 🔴 ایده طلایی دوم شما: فلاتر حق ندارد عکس‌های بالا و پایین اسکرین را پیش‌لود کند!
+        cacheExtent: 0,
         slivers: [
-          // بخش نمایش تصاویر به صورت شبکه‌ای
           SliverPadding(
             padding: const EdgeInsets.all(16),
             sliver: SliverGrid(
@@ -129,8 +135,7 @@ class _GalleryPageState extends ConsumerState<GalleryPage> {
                                   ? UniversalImage(
                                       imageUrl: fullImageUrl,
                                       fit: BoxFit.cover,
-                                      cacheWidth:
-                                          350, // رندر فوق‌العاده سبک برای رم وب
+                                      cacheWidth: 350,
                                     )
                                   : Hero(
                                       tag: heroTag,
@@ -182,15 +187,15 @@ class _GalleryPageState extends ConsumerState<GalleryPage> {
                   );
                 },
                 childCount: displayCount,
-                // 🔴 فقط به تعداد مجاز لود کن (مثلا ۱۲ تا)
                 addAutomaticKeepAlives: false,
-                addRepaintBoundaries: true,
+                addRepaintBoundaries:
+                    true, // 🔴 این حتماً باید TRUE باشه تا کل صفحه تو اسکرول تیک نزنه!
               ),
             ),
           ),
 
-          // 🔴 دکمه هوشمند لود بیشتر: بدون درخواست به سرور، ۱۲ عکس بعدی را از لیست ۲۰۰ تایی موجود آزاد می‌کند
-          if (hasMoreLocal)
+          // 🔴 دکمه هوشمند ترکیبی
+          if (hasMoreLocal || hasMoreServer)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.only(
@@ -199,37 +204,50 @@ class _GalleryPageState extends ConsumerState<GalleryPage> {
                   left: 40,
                   right: 40,
                 ),
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _currentVisibleCount +=
-                          12; // 🔴 اضافه شدن ۱۲ عدد به سقف مجاز رندر
-                    });
-                  },
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                  label: const Text(
-                    'مشاهده تصاویر بیشتر',
-                    style: TextStyle(
-                      fontFamily: 'Samim',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    elevation: 2,
-                  ),
-                ),
+                child: galleryState.isFetchingMore
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
+                      )
+                    : ElevatedButton.icon(
+                        onPressed: () {
+                          if (hasMoreLocal) {
+                            // اگر هنوز تو اون ۲۰۰ تای قبلی عکس داریم، ۱۲ تا دیگه نشون بده
+                            setState(() {
+                              _currentVisibleCount += 12;
+                            });
+                          } else if (hasMoreServer) {
+                            // اگر ۲۰۰ تای قبلی تموم شد، به سرور ریکوئست بزن برای صفحه بعدی دیتابیس
+                            ref.read(galleryProvider.notifier).loadMore();
+                            setState(() {
+                              _currentVisibleCount += 12;
+                            });
+                          }
+                        },
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                        label: const Text(
+                          'مشاهده تصاویر بیشتر',
+                          style: TextStyle(
+                            fontFamily: 'Samim',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          elevation: 2,
+                        ),
+                      ),
               ),
             ),
 
-          // پیام انتهای گالری
-          if (!hasMoreLocal && _shuffledImages.isNotEmpty)
+          if (!hasMoreLocal && !hasMoreServer && _shuffledImages.isNotEmpty)
             const SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.only(bottom: 40, top: 20),
@@ -251,6 +269,9 @@ class _GalleryPageState extends ConsumerState<GalleryPage> {
   }
 }
 
+// ----------------------------------------------------
+// نمایشگر تمام صفحه
+// ----------------------------------------------------
 class FullScreenImageViewer extends StatelessWidget {
   final String imageUrl;
   final String title;
@@ -293,6 +314,7 @@ class FullScreenImageViewer extends StatelessWidget {
               children: [
                 IconButton(
                   onPressed: () {
+                    // با زدن دکمه بستن، عکس کیفیت بالا باید از رم پاک شود
                     if (kIsWeb) PaintingBinding.instance.imageCache.clear();
                     Navigator.pop(context);
                   },

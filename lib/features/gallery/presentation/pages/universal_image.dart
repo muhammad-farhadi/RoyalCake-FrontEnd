@@ -35,7 +35,8 @@ class UniversalImage extends StatelessWidget {
         width: width,
         height: height,
         cacheWidth: cacheWidth,
-        // 🔴 اعمال کش سایز در وب
+        filterQuality: FilterQuality.none, // 🔴 معجزه سرعت: غیرفعال کردن رندر سنگین پیکسلی در وب
+        gaplessPlayback: true, // 🔴 جلوگیری از چشمک زدن عکس در اسکرول بالا و پایین
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
           return const Center(
