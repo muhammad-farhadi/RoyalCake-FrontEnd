@@ -28,7 +28,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
 
   @override
   void dispose() {
-    _timer?.cancel(); // حل مشکل Memory Leak به صورت قطعی
+    _timer?.cancel();
     _otpController.dispose();
     super.dispose();
   }
@@ -108,30 +108,52 @@ class _OtpPageState extends ConsumerState<OtpPage> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final theme = Theme.of(context);
+
     return Scaffold(
+      backgroundColor: const Color(0xfffcf8f8), // رنگ پس‌زمینه لایت اپ
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios),
+          color: const Color(0xff0c4d3b), // هماهنگی رنگ دکمه بازگشت
           onPressed: () => Navigator.pop(context),
         ),
         backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            // وسط‌چین شدن عمودی تمامی المان‌ها
             children: [
-              Text(
-                'کد تایید را وارد کنید',
-                style: theme.textTheme.headlineLarge,
+              const SizedBox(height: 16),
+              Center(child: Image.asset('assets/images/logo.png', height: 120)),
+              const SizedBox(height: 40),
+
+              Center(
+                child: Text(
+                  'کد تایید را وارد کنید',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    color: const Color(0xff0c4d3b), // رنگ سبز تیره تم
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
               const SizedBox(height: 8),
-              Text(
-                'کد پیامک شده به شماره ${widget.phoneNumber} را وارد نمایید',
-                style: theme.textTheme.bodyMedium,
+              Center(
+                child: Text(
+                  'کد پیامک شده به شماره ${widget.phoneNumber} را وارد نمایید',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xff2c3e50), // رنگ متن تیره تم
+                  ),
+                ),
               ),
               const SizedBox(height: 40),
+
+              // فیلد اختصاصی وارد کردن کد OTP
               TextField(
                 controller: _otpController,
                 keyboardType: TextInputType.number,
@@ -140,6 +162,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                   fontSize: 28,
                   letterSpacing: 16.0,
                   fontWeight: FontWeight.bold,
+                  color: Color(0xff0c4d3b),
                 ),
                 maxLength: 6,
                 decoration: InputDecoration(
@@ -148,15 +171,12 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                   counterText: "",
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(
-                      color: Colors.grey.shade300,
-                      width: 1.5,
-                    ),
+                    borderSide: BorderSide(color: Colors.grey.shade200),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(
-                      color: theme.colorScheme.primary,
+                    borderSide: const BorderSide(
+                      color: Color(0xff0c4d3b), // بوردر سبز در فوکوس
                       width: 2,
                     ),
                   ),
@@ -166,18 +186,21 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                 },
               ),
               const SizedBox(height: 32),
+
+              // بخش تایمر و ارسال مجدد کد
               Center(
                 child: _canResend
                     ? TextButton.icon(
                         onPressed: authState.isLoading ? null : _resendCode,
-                        icon: Icon(
+                        icon: const Icon(
                           Icons.refresh,
-                          color: theme.colorScheme.primary,
+                          color: Color(0xfffc94a1), // رنگ صورتی تم (Accent)
                           size: 20,
                         ),
                         label: const Text(
                           'ارسال مجدد کد تایید',
                           style: TextStyle(
+                            color: Color(0xfffc94a1), // رنگ صورتی تم (Accent)
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
                           ),
@@ -203,18 +226,20 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                       ),
               ),
               const SizedBox(height: 32),
+
+              // دکمه اصلی تایید و ورود
               SizedBox(
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
                   onPressed: authState.isLoading ? null : _verifyCode,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
+                    backgroundColor: const Color(0xff0c4d3b), // رنگ سبز اصلی
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    elevation: 0,
+                    elevation: 1,
                   ),
                   child: authState.isLoading
                       ? const SizedBox(
@@ -234,6 +259,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                         ),
                 ),
               ),
+              const SizedBox(height: 24),
             ],
           ),
         ),

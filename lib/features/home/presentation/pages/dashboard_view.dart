@@ -57,10 +57,6 @@ class DashboardView extends ConsumerWidget {
                   icon: Icons.support_agent_rounded,
                   title: 'پشتیبانی دائمی',
                 ),
-                FeatureItem(
-                  icon: Icons.workspace_premium_outlined,
-                  title: 'اساتید مجرب',
-                ),
               ],
             ),
           ),
