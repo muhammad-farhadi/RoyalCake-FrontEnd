@@ -168,7 +168,7 @@ class AboutUsPage extends StatelessWidget {
                             fallbackIcon: Icons.camera_alt_rounded,
                             title: 'اینستاگرام',
                             color: const Color(0xffE1306C),
-                            url: 'https://instagram.com/royalcakes_ir',
+                            url: 'https://instagram.com/royalcakes.ir',
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -179,7 +179,7 @@ class AboutUsPage extends StatelessWidget {
                             fallbackIcon: Icons.telegram_rounded,
                             title: 'تلگرام',
                             color: const Color(0xff0088cc),
-                            url: 'https://t.me/royalcakes_admin',
+                            url: 'https://t.me/royalcakes_ir',
                           ),
                         ),
                       ],
@@ -194,7 +194,7 @@ class AboutUsPage extends StatelessWidget {
                             fallbackIcon: Icons.chat,
                             title: 'واتس‌اپ',
                             color: const Color(0xff25D366),
-                            url: 'https://wa.me/989123456789',
+                            url: 'https://wa.me/989127612655',
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -205,7 +205,7 @@ class AboutUsPage extends StatelessWidget {
                             fallbackIcon: Icons.chat_bubble_rounded,
                             title: 'پیام‌رسان بله',
                             color: const Color(0xff14876b),
-                            url: 'https://ble.ir/royalcakes_support',
+                            url: 'https://ble.ir/royalcakes_ir',
                           ),
                         ),
                       ],
@@ -336,3 +336,4 @@ class AboutUsPage extends StatelessWidget {
     );
   }
 }
+
