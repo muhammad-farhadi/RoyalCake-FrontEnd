@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../gallery/presentation/pages/fullScreenPage.dart';
 import '../../../gallery/presentation/pages/gallery_page.dart';
 import '../../../home/providers/home_provider.dart';
 import '../../providers/reviews_provider.dart';

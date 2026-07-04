@@ -7,8 +7,7 @@ class UniversalImage extends StatelessWidget {
   final double? width;
   final double? height;
   final Widget? errorWidget;
-  final int?
-  cacheWidth; // 🔴 اضافه شدن پارامتر کش سایز برای جلوگیری از کرش سافاری
+  final int? cacheWidth;
 
   const UniversalImage({
     super.key,
@@ -17,7 +16,7 @@ class UniversalImage extends StatelessWidget {
     this.width,
     this.height,
     this.errorWidget,
-    this.cacheWidth, // 🔴 مقداردهی
+    this.cacheWidth,
   });
 
   @override
@@ -28,37 +27,14 @@ class UniversalImage extends StatelessWidget {
           child: Icon(Icons.broken_image_outlined, color: Colors.black26),
         );
 
-    if (kIsWeb) {
-      return Image.network(
-        imageUrl,
-        fit: fit,
-        width: width,
-        height: height,
-        cacheWidth: cacheWidth,
-        filterQuality: FilterQuality.none, // 🔴 معجزه سرعت: غیرفعال کردن رندر سنگین پیکسلی در وب
-        gaplessPlayback: true, // 🔴 جلوگیری از چشمک زدن عکس در اسکرول بالا و پایین
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return const Center(
-            child: SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) => defaultError,
-      );
-    } else {
-      return Image.network(
-        imageUrl,
-        fit: fit,
-        width: width,
-        height: height,
-        cacheWidth: cacheWidth,
-        // 🔴 اعمال کش سایز در اندروید (برای روانی بیشتر اسکرول)
-        errorBuilder: (context, error, stackTrace) => defaultError,
-      );
-    }
+    return Image.network(
+      imageUrl,
+      fit: fit,
+      width: width,
+      height: height,
+      // 🔴 معجزه اصلی کنترل رم فلاتر همینجاست. عکس باکیفیت رو در همون سایزی که میخوایم تو رم نگه میداره
+      cacheWidth: cacheWidth,
+      errorBuilder: (context, error, stackTrace) => defaultError,
+    );
   }
 }

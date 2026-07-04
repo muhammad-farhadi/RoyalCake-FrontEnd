@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../courses/presentation/pages/course_detail_page.dart';
+import '../../../gallery/presentation/pages/fullScreenPage.dart';
 import '../../../gallery/presentation/pages/gallery_page.dart';
 import '../../../gallery/presentation/pages/universal_image.dart';
 import '../widgets/highlights_bar.dart';
