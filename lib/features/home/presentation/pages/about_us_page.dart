@@ -194,7 +194,7 @@ class AboutUsPage extends StatelessWidget {
                             fallbackIcon: Icons.chat,
                             title: 'واتس‌اپ',
                             color: const Color(0xff25D366),
-                            url: 'https://wa.me/989127612655',
+                            url: 'https://wa.me/989197919171',
                           ),
                         ),
                         const SizedBox(width: 12),

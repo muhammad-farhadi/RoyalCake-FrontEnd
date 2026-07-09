@@ -13,15 +13,79 @@ class CartPage extends ConsumerStatefulWidget {
   ConsumerState<CartPage> createState() => _CartPageState();
 }
 
-class _CartPageState extends ConsumerState<CartPage> {
+// 👈 اضافه شدن WidgetsBindingObserver برای شنیدن وضعیت بازگشت به اپلیکیشن
+class _CartPageState extends ConsumerState<CartPage>
+    with WidgetsBindingObserver {
   final TextEditingController _discountController = TextEditingController();
   bool _isProcessing = false;
   bool _isDeleting = false;
 
+  // دو متغیر جدید برای مدیریت هوشمندانه وضعیت درگاه
+  bool _wentToPayment = false;
+  bool _isCheckingPayment = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this); // روشن کردن گوش‌زنگ
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // خاموش کردن گوش‌زنگ
     _discountController.dispose();
     super.dispose();
+  }
+
+  // ===================================================================
+  // جادوی بررسی موفق یا ناموفق بودن پرداخت پس از بسته شدن درگاه
+  // ===================================================================
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _verifyPaymentStatus();
+    }
+  }
+
+  Future<void> _verifyPaymentStatus() async {
+    if (!_wentToPayment) return;
+    if (_isCheckingPayment) return;
+
+    setState(() => _isCheckingPayment = true);
+
+    // ۱. پاک کردن فوری اسنک‌بار قبلی
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+    // ۲. آپدیت سبد خرید از بک‌اند
+    await ref.read(cartProvider.notifier).fetchCart();
+
+    if (!mounted) return;
+
+    // ۳. پیام کوتاه و سرراست
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        backgroundColor: AppColors.primary,
+        duration: Duration(seconds: 4), // زمان رو هم کمتر کردیم
+        content: Text(
+          'در صورت پرداخت موفق، دوره به بخش «دوره‌های من» اضافه شد.',
+          style: TextStyle(fontFamily: 'Samim', fontSize: 14),
+        ),
+      ),
+    );
+
+    // ۴. هدایت به داشبورد
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const HomePage()),
+      (route) => false,
+    );
+
+    if (mounted) {
+      setState(() {
+        _wentToPayment = false;
+        _isCheckingPayment = false;
+      });
+    }
   }
 
   String _formatPrice(dynamic price) {
@@ -57,6 +121,7 @@ class _CartPageState extends ConsumerState<CartPage> {
             backgroundColor: Colors.green,
             content: Text(
               checkoutResult['message'] ?? 'سفارش رایگان شما با موفقیت ثبت شد.',
+              style: const TextStyle(fontFamily: 'Samim'),
             ),
           ),
         );
@@ -73,13 +138,23 @@ class _CartPageState extends ConsumerState<CartPage> {
 
       try {
         if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               backgroundColor: AppColors.primary,
-              content: Text('در حال انتقال به درگاه پرداخت...'),
+              content: Text(
+                'در حال انتقال به درگاه پرداخت...',
+                style: TextStyle(fontFamily: 'Samim'),
+              ),
+              duration: Duration(
+                seconds: 15,
+              ), // به قدری بالا می‌بریم تا مرورگر باز بشه، بعداً خودمون دستی پاکش میکنیم
             ),
           );
         }
+
+        // علامت‌گذاری اینکه کاربر رسماً وارد فاز پرداخت شد
+        setState(() => _wentToPayment = true);
 
         // باز کردن لینک درگاه
         await launchUrl(
@@ -89,15 +164,8 @@ class _CartPageState extends ConsumerState<CartPage> {
               : LaunchMode.inAppBrowserView,
         );
 
-        // 👈 رفتار مطلوب شما: بلافاصله بعد از باز شدن مرورگر، کاربر رو به داشبورد می‌فرستیم
-        // چون آبزرور در فایل پروایدر نوشته شده، به محض بسته شدن مرورگر، بج قرمز رنگ اتوماتیک آپدیت میشه!
-        if (mounted) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const HomePage()),
-            (route) => false,
-          );
-        }
+        // 👈 توجه: اینجا دیگه دستور Navigator.push نداریم!
+        // کاربر تو همین صفحه زیرِ مرورگر میمونه تا کارش تموم بشه و تابع didChangeAppLifecycleState بالا اجرا بشه
       } catch (_) {
         await launchUrl(url);
       }
@@ -106,7 +174,10 @@ class _CartPageState extends ConsumerState<CartPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: Colors.redAccent,
-            content: Text(e.toString().replaceAll('Exception: ', '')),
+            content: Text(
+              e.toString().replaceAll('Exception: ', ''),
+              style: const TextStyle(fontFamily: 'Samim'),
+            ),
           ),
         );
       }
@@ -125,7 +196,10 @@ class _CartPageState extends ConsumerState<CartPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: Colors.green,
-            content: Text('دوره با موفقیت از سبد خرید شما حذف شد.'),
+            content: Text(
+              'دوره با موفقیت از سبد خرید شما حذف شد.',
+              style: TextStyle(fontFamily: 'Samim'),
+            ),
           ),
         );
       }
@@ -134,7 +208,10 @@ class _CartPageState extends ConsumerState<CartPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: Colors.redAccent,
-            content: Text(e.toString().replaceAll('Exception: ', '')),
+            content: Text(
+              e.toString().replaceAll('Exception: ', ''),
+              style: const TextStyle(fontFamily: 'Samim'),
+            ),
           ),
         );
       }
@@ -154,7 +231,11 @@ class _CartPageState extends ConsumerState<CartPage> {
           backgroundColor: AppColors.primary,
           title: const Text(
             'سبد خرید شما',
-            style: TextStyle(fontSize: 18, color: Colors.white),
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.white,
+              fontFamily: 'Samim',
+            ),
           ),
           centerTitle: true,
           iconTheme: const IconThemeData(color: Colors.white),
@@ -163,8 +244,12 @@ class _CartPageState extends ConsumerState<CartPage> {
           loading: () => const Center(
             child: CircularProgressIndicator(color: AppColors.primary),
           ),
-          error: (err, stack) =>
-              Center(child: Text('خطا در دریافت سبد خرید: $err')),
+          error: (err, stack) => Center(
+            child: Text(
+              'خطا در دریافت سبد خرید: $err',
+              style: const TextStyle(fontFamily: 'Samim'),
+            ),
+          ),
           data: (cart) {
             if (cart == null ||
                 cart['items'] == null ||
@@ -172,7 +257,7 @@ class _CartPageState extends ConsumerState<CartPage> {
               return const Center(
                 child: Text(
                   'سبد خرید شما در حال حاضر خالی است.',
-                  style: TextStyle(fontSize: 16),
+                  style: TextStyle(fontSize: 16, fontFamily: 'Samim'),
                 ),
               );
             }
@@ -194,11 +279,17 @@ class _CartPageState extends ConsumerState<CartPage> {
                         child: ListTile(
                           title: Text(
                             item['course_title'] ?? '',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Samim',
+                            ),
                           ),
                           subtitle: Text(
                             _formatPrice(item['price']),
-                            style: const TextStyle(color: AppColors.primary),
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontFamily: 'Samim',
+                            ),
                           ),
                           trailing: IconButton(
                             icon: const Icon(
@@ -244,7 +335,10 @@ class _CartPageState extends ConsumerState<CartPage> {
                                 controller: _discountController,
                                 decoration: InputDecoration(
                                   hintText: 'کد تخفیف دارید؟ وارد کنید...',
-                                  hintStyle: const TextStyle(fontSize: 13),
+                                  hintStyle: const TextStyle(
+                                    fontSize: 13,
+                                    fontFamily: 'Samim',
+                                  ),
                                   contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 16,
                                   ),
@@ -265,6 +359,7 @@ class _CartPageState extends ConsumerState<CartPage> {
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
+                                fontFamily: 'Samim',
                               ),
                             ),
                             Text(
@@ -273,6 +368,7 @@ class _CartPageState extends ConsumerState<CartPage> {
                                 fontSize: 18,
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.bold,
+                                fontFamily: 'Samim',
                               ),
                             ),
                           ],
@@ -304,6 +400,7 @@ class _CartPageState extends ConsumerState<CartPage> {
                                       fontSize: 16,
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
+                                      fontFamily: 'Samim',
                                     ),
                                   ),
                           ),

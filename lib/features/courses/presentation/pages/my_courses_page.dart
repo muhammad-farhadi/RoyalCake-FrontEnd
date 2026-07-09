@@ -5,14 +5,28 @@ import '../../../../core/theme/app_colors.dart';
 import '../../providers/course_detail_provider.dart';
 import 'course_detail_page.dart';
 
-class MyCoursesPage extends ConsumerWidget {
+// ۱. تبدیل به ConsumerStatefulWidget برای دسترسی به initState
+class MyCoursesPage extends ConsumerStatefulWidget {
   const MyCoursesPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyCoursesPage> createState() => _MyCoursesPageState();
+}
+
+class _MyCoursesPageState extends ConsumerState<MyCoursesPage> {
+  @override
+  void initState() {
+    super.initState();
+    // ۲. به محض باز شدن این صفحه، به Riverpod دستور می‌دهیم کش دوره‌های من را پاک کند و دیتای تازه بگیرد
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(myCoursesProvider);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final myCoursesState = ref.watch(myCoursesProvider);
 
-    // اینجا دیگر Scaffold و AppBar نداریم، مستقیماً محتوا را برمی‌گردانیم
     return myCoursesState.when(
       loading: () => const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
@@ -25,111 +39,131 @@ class MyCoursesPage extends ConsumerWidget {
       ),
       data: (courses) {
         if (courses.isEmpty) {
-          return const Center(
-            child: Text(
-              'شما هنوز در هیچ دوره‌ای ثبت‌نام نکرده‌اید.',
-              style: TextStyle(fontFamily: 'Samim', color: Colors.black45),
+          // اضافه کردن رفرش برای حالت خالی بودن لیست
+          return RefreshIndicator(
+            color: AppColors.primary,
+            onRefresh: () async {
+              ref.invalidate(myCoursesProvider);
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Container(
+                height: MediaQuery.of(context).size.height * 0.7,
+                alignment: Alignment.center,
+                child: const Text(
+                  'شما هنوز در هیچ دوره‌ای ثبت‌نام نکرده‌اید.',
+                  style: TextStyle(fontFamily: 'Samim', color: Colors.black45),
+                ),
+              ),
             ),
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          physics: const BouncingScrollPhysics(),
-          itemCount: courses.length,
-          itemBuilder: (context, index) {
-            final course = courses[index];
-            final fullImageUrl = AppConstants.getFullImageUrl(
-              course['course_image'],
-            );
+        // ۳. قرار دادن لیست داخل RefreshIndicator برای آپدیت دستی
+        return RefreshIndicator(
+          color: AppColors.primary,
+          onRefresh: () async {
+            // وقتی کاربر لیست را به پایین می‌کشد، این خط اجرا شده و دیتا تازه می‌شود
+            ref.invalidate(myCoursesProvider);
+          },
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            // AlwaysScrollableScrollPhysics اجازه می‌دهد حتی اگر لیست کوتاه بود، کاربر بتواند آن را به پایین بکشد
+            physics: const AlwaysScrollableScrollPhysics(),
+            itemCount: courses.length,
+            itemBuilder: (context, index) {
+              final course = courses[index];
+              final fullImageUrl = AppConstants.getFullImageUrl(
+                course['course_image'],
+              );
 
-            return Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: InkWell(
-                  onTap: () {
-                    // با کلیک روی دوره، به صفحه جزئیات آن می‌رود
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            CourseDetailPage(courseId: course['course_id']),
-                      ),
-                    );
-                  },
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 90,
-                        height: 90,
-                        color: Colors.grey.shade100,
-                        child: Image.network(
-                          fullImageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(
-                                Icons.image_outlined,
-                                color: Colors.grey,
-                              ),
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              CourseDetailPage(courseId: course['course_id']),
                         ),
-                      ),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                course['course_title'] ?? 'بدون عنوان',
-                                style: const TextStyle(
-                                  color: AppColors.darkText,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: 'Samim',
+                      );
+                    },
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 90,
+                          height: 90,
+                          color: Colors.grey.shade100,
+                          child: Image.network(
+                            fullImageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(
+                                  Icons.image_outlined,
+                                  color: Colors.grey,
                                 ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'وضعیت: خریداری شده',
-                                style: TextStyle(
-                                  color: Colors.green.shade700,
-                                  fontSize: 12,
-                                  fontFamily: 'Samim',
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
                           ),
                         ),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        child: Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: 14,
-                          color: Colors.black26,
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  course['course_title'] ?? 'بدون عنوان',
+                                  style: const TextStyle(
+                                    color: AppColors.darkText,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'Samim',
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'وضعیت: خریداری شده',
+                                  style: TextStyle(
+                                    color: Colors.green.shade700,
+                                    fontSize: 12,
+                                    fontFamily: 'Samim',
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          child: Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 14,
+                            color: Colors.black26,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         );
       },
     );
