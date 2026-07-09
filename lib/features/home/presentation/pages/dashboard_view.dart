@@ -560,12 +560,12 @@ class _BannerSliderState extends State<BannerSlider> {
     {
       'title': 'دوره جامع چیزکیک',
       'subtitle': 'آموزش تخصصی منوی کافی‌شاپ',
-      'image': 'assets/images/banner5.png',
+      'image': 'assets/images/banner3.JPG',
     },
     {
-      'title': 'دوره کیک‌های خامه ای',
+      'title': 'دوره کیک و کوکی کافی شاپی',
       'subtitle': 'مدرن و اصول دکوراتوری کیک',
-      'image': 'assets/images/banner2.png',
+      'image': 'assets/images/banner5.png',
     },
     {
       'title': 'آموزش شیرینی‌های مدرن',
