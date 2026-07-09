@@ -152,9 +152,9 @@ class AboutUsPage extends StatelessWidget {
                       context: context,
                       icon: Icons.phone_in_talk_rounded,
                       title: 'پشتیبانی و مشاوره',
-                      subtitle: '09127612655',
+                      subtitle: '09197919171',
                       color: AppColors.primary,
-                      url: 'tel:09127612655',
+                      url: 'tel:09197919171',
                     ),
                     const SizedBox(height: 12),
 
