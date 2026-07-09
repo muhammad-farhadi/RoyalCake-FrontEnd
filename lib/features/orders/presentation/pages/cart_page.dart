@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart'
-    show kIsWeb; // ۱. اضافه شدن این خط برای تشخیص خودکار حالت وب
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../home/presentation/pages/home_page.dart';
 import '../../providers/cart_provider.dart';
 
 class CartPage extends ConsumerStatefulWidget {
@@ -13,31 +13,15 @@ class CartPage extends ConsumerStatefulWidget {
   ConsumerState<CartPage> createState() => _CartPageState();
 }
 
-class _CartPageState extends ConsumerState<CartPage>
-    with WidgetsBindingObserver {
+class _CartPageState extends ConsumerState<CartPage> {
   final TextEditingController _discountController = TextEditingController();
   bool _isProcessing = false;
   bool _isDeleting = false;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this); // پایش برگشت کاربر به اپلیکیشن
-  }
-
-  @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _discountController.dispose();
     super.dispose();
-  }
-
-  // وقتی کاربر بعد از تراکنش مروگر را می‌بندد و به اپلیکیشن برمی‌گردد، سبد خرید آپدیت می‌شود
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      ref.read(cartProvider.notifier).fetchCart();
-    }
   }
 
   String _formatPrice(dynamic price) {
@@ -55,13 +39,9 @@ class _CartPageState extends ConsumerState<CartPage>
     return '$farsiPrice تومان';
   }
 
-  // ===================================================================
-  // تابع اصلاح‌شده و منعطف برای باز کردن لینک درگاه در وب و اندروید
-  // ===================================================================
   Future<void> _handleCheckout() async {
     setState(() => _isProcessing = true);
     try {
-      // ۱. ارسال درخواست ثبت فاکتور به بک‌باند
       final checkoutResult = await ref
           .read(cartProvider.notifier)
           .checkout(_discountController.text);
@@ -70,7 +50,7 @@ class _CartPageState extends ConsumerState<CartPage>
 
       if (!mounted) return;
 
-      // ۲. وضعیت فاکتور رایگان
+      // وضعیت فاکتور رایگان
       if (paymentUrl == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -81,32 +61,44 @@ class _CartPageState extends ConsumerState<CartPage>
           ),
         );
         ref.read(cartProvider.notifier).fetchCart();
-        Navigator.pop(context);
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+          (route) => false,
+        );
         return;
       }
 
-      // ۳. ارجاع مستقیم کاربر به درگاه زرین‌پال بدون شرط آسیب‌پذیر canLaunch
       final Uri url = Uri.parse(paymentUrl);
 
       try {
-        // باز کردن لینک متناسب با پلتفرم وب یا اندروید
-        await launchUrl(
-          url,
-          mode: kIsWeb
-              ? LaunchMode.platformDefault
-              : LaunchMode.externalApplication,
-        );
-
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               backgroundColor: AppColors.primary,
-              content: Text('در حال انتقال به درگاه پرداخت زرین‌پال...'),
+              content: Text('در حال انتقال به درگاه پرداخت...'),
             ),
           );
         }
+
+        // باز کردن لینک درگاه
+        await launchUrl(
+          url,
+          mode: kIsWeb
+              ? LaunchMode.platformDefault
+              : LaunchMode.inAppBrowserView,
+        );
+
+        // 👈 رفتار مطلوب شما: بلافاصله بعد از باز شدن مرورگر، کاربر رو به داشبورد می‌فرستیم
+        // چون آبزرور در فایل پروایدر نوشته شده، به محض بسته شدن مرورگر، بج قرمز رنگ اتوماتیک آپدیت میشه!
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const HomePage()),
+            (route) => false,
+          );
+        }
       } catch (_) {
-        // متد کمکی زاپاس در صورت بروز هرگونه خطای پلتفرمی
         await launchUrl(url);
       }
     } catch (e) {
@@ -147,7 +139,6 @@ class _CartPageState extends ConsumerState<CartPage>
         );
       }
     } finally {
-      // <--- اصلاح املا به finally
       if (mounted) setState(() => _isDeleting = false);
     }
   }

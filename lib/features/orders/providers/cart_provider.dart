@@ -1,14 +1,36 @@
+import 'package:flutter/material.dart'; // 👈 اضافه شدن این ایمپورت برای آبزرور
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/network/token_storage.dart';
-import '../../auth/providers/auth_provider.dart';
 
-class CartNotifier extends StateNotifier<AsyncValue<Map<String, dynamic>?>> {
+// 👈 اضافه شدن with WidgetsBindingObserver به کلاس پروایدر
+class CartNotifier extends StateNotifier<AsyncValue<Map<String, dynamic>?>>
+    with WidgetsBindingObserver {
   final Dio _dio;
 
   CartNotifier(this._dio) : super(const AsyncValue.loading()) {
+    WidgetsBinding.instance.addObserver(this); // روشن کردن گوش‌زنگ
     fetchCart();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(
+      this,
+    ); // خاموش کردن گوش‌زنگ هنگام نابودی
+    super.dispose();
+  }
+
+  // ===================================================================
+  // این تابع جادویی، هربار که کاربر به اپلیکیشن برمیگرده سبد رو آپدیت میکنه
+  // ===================================================================
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // کاربر درگاه رو بسته و برگشته تو اپلیکیشن -> آپدیت خودکار دیتای سبد خرید
+      fetchCart();
+    }
   }
 
   // دریافت اطلاعات سبد خرید فعلی
@@ -46,7 +68,7 @@ class CartNotifier extends StateNotifier<AsyncValue<Map<String, dynamic>?>> {
     }
   }
 
-  // فرآیند تسویه حساب و دریافت لینک درگاه زرین‌پال از بک‌باند نهایی
+  // فرآیند تسویه حساب و دریافت لینک درگاه
   Future<Map<String, dynamic>> checkout(String? discountCode) async {
     try {
       final response = await _dio.post(
@@ -57,7 +79,6 @@ class CartNotifier extends StateNotifier<AsyncValue<Map<String, dynamic>?>> {
               : null,
         },
       );
-      // خروجی شامل payment_url و message و order_id ارسالی از بک‌باند است
       return response.data;
     } on DioException catch (e) {
       print(e);
@@ -67,11 +88,11 @@ class CartNotifier extends StateNotifier<AsyncValue<Map<String, dynamic>?>> {
     }
   }
 
-  // حذف یک دوره از سبد خرید بر اساس آدرس نهایی بک‌باند (/orders/cart/{course_id})
+  // حذف یک دوره از سبد خرید
   Future<bool> deleteOrder(int courseId) async {
     try {
       await _dio.delete('/orders/cart/$courseId');
-      await fetchCart(); // به‌روزرسانی مجدد سبد خرید پس از حذف
+      await fetchCart();
       return true;
     } on DioException catch (e) {
       throw Exception(
@@ -90,7 +111,6 @@ final cartProvider =
       return CartNotifier(ref.read(dioProvider));
     });
 
-// دریافت لیست تراکنش‌ها و پرداخت‌های موفق/ناموفق کاربر
 final myPaymentsProvider = FutureProvider<List<dynamic>>((ref) async {
   final dio = ref.read(dioProvider);
   final response = await dio.get('/orders/my-payments');

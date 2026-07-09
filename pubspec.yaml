@@ -2,7 +2,7 @@ name: royalcakes
 description: "Learn the art of baking with RoyalCakes. From simple cakes to advanced desserts, follow step-by-step courses and turn your passion for baking into professional skills."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.8.1
