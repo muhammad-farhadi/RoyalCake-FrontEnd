@@ -86,71 +86,93 @@ class CourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fullImageUrl = AppConstants.getFullImageUrl(imageUrl);
+    // گرفتن آدرس کامل عکس
+    final fullUrl = AppConstants.getFullImageUrl(imageUrl);
 
     return Container(
-      width: 165,
+      width: 165, // عرض ثابت برای یکدست شدن کارت‌ها
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 8,
-            offset: const Offset(0, 3),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
           onTap: onTap,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ------------------------------------
+              // بخش بالایی: عکس دوره
+              // ------------------------------------
               Expanded(
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(18),
-                  ),
-                  child: UniversalImage(
-                    // اصلاح شد: استفاده از کامپوننت سراسری و بهینه
-                    imageUrl: fullImageUrl,
+                flex: 5,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Image.network(
+                    fullUrl,
                     fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: double.infinity,
+                    errorBuilder: (context, error, stackTrace) => const Center(
+                      child: Icon(
+                        Icons.broken_image_outlined,
+                        color: Colors.grey,
+                      ),
+                    ),
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Samim',
-                        color: AppColors.darkText,
+              // ------------------------------------
+              // بخش پایینی: متن‌ها
+              // ------------------------------------
+              Expanded(
+                flex: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // 👇 جادوی یک‌خطی ماندن و کوچک شدن سایز فونت اینجاست
+                      SizedBox(
+                        width: double.infinity,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          // اگر جا نشد کوچیکش کن
+                          alignment: Alignment.centerRight,
+                          // از راست به چپ بچین
+                          child: Text(
+                            title,
+                            maxLines: 1, // فقط و فقط یک خط!
+                            style: const TextStyle(
+                              fontSize: 13.5, // سایز ایده‌آل پیش‌فرض
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Samim',
+                              color: AppColors.darkText,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      price,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Samim',
-                        color: AppColors.primary,
+
+                      // قیمت
+                      Text(
+                        price,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Samim',
+                          color: AppColors.primary,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
