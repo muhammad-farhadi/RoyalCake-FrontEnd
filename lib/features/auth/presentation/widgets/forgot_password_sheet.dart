@@ -47,10 +47,11 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
       ).showSnackBar(const SnackBar(content: Text('کد تایید ارسال شد.')));
     } else if (mounted) {
       final error = ref.read(authProvider).error;
-      if (error != null)
+      if (error != null) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(error)));
+      }
     }
   }
 
@@ -82,10 +83,11 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
       );
     } else {
       final error = ref.read(authProvider).error;
-      if (error != null)
+      if (error != null) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(error)));
+      }
     }
   }
 
@@ -125,14 +127,20 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
 
               Text(
                 _currentStep == 1 ? 'فراموشی رمز عبور' : 'تعیین رمز عبور جدید',
-                style: theme.textTheme.headlineLarge?.copyWith(fontSize: 20),
+                style: theme.textTheme.headlineLarge?.copyWith(
+                  fontSize: 20,
+                  color: const Color(0xff0c4d3b), // هماهنگ با لاگین
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 _currentStep == 1
                     ? 'شماره موبایل خود را وارد کنید تا کد تایید برای شما ارسال شود.'
                     : 'کد ۵ رقمی ارسالی و رمز عبور جدید خود را وارد کنید.',
-                style: theme.textTheme.bodyMedium,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xff2c3e50), // هماهنگ با لاگین
+                ),
               ),
               const SizedBox(height: 24),
 
@@ -147,7 +155,6 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
                 ),
                 const SizedBox(height: 24),
                 _buildActionButton(
-                  theme: theme,
                   isLoading: authState.isLoading,
                   text: 'ارسال کد تایید',
                   onPressed: _submitPhone,
@@ -170,7 +177,6 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
                 ),
                 const SizedBox(height: 24),
                 _buildActionButton(
-                  theme: theme,
                   isLoading: authState.isLoading,
                   text: 'تغییر رمز و ورود خودکار',
                   onPressed: _resetAndLogin,
@@ -192,7 +198,6 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
     TextInputType keyboardType = TextInputType.text,
     int? maxLength,
   }) {
-    final theme = Theme.of(context);
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
@@ -204,8 +209,10 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
         counterText: "",
         filled: true,
-        fillColor: Colors.grey.shade50,
-        prefixIcon: Icon(icon, color: theme.colorScheme.primary),
+        fillColor: Colors.white,
+        // هماهنگ با لاگین
+        prefixIcon: Icon(icon, color: const Color(0xff0c4d3b)),
+        // هماهنگ با لاگین
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
@@ -222,35 +229,37 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+          borderSide: const BorderSide(
+            color: Color(0xff0c4d3b), // هماهنگ با لاگین
+            width: 2,
+          ),
         ),
       ),
     );
   }
 
   Widget _buildActionButton({
-    required ThemeData theme,
     required bool isLoading,
     required String text,
     required VoidCallback onPressed,
   }) {
     return SizedBox(
       width: double.infinity,
-      height: 52,
+      height: 55, // هماهنگ با ارتفاع دکمه لاگین
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: theme.colorScheme.primary,
+          backgroundColor: const Color(0xff0c4d3b), // هماهنگ با لاگین
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          elevation: 0,
+          elevation: 1, // هماهنگ با سایه لاگین
         ),
         child: isLoading
             ? const SizedBox(
-                height: 22,
-                width: 22,
+                height: 24,
+                width: 24,
                 child: CircularProgressIndicator(
                   color: Colors.white,
                   strokeWidth: 2,
@@ -259,7 +268,7 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
             : Text(
                 text,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 18, // هماهنگ با فونت لاگین
                   fontWeight: FontWeight.bold,
                 ),
               ),
