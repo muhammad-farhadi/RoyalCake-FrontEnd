@@ -564,7 +564,7 @@ class _BannerSliderState extends State<BannerSlider> {
     },
     {
       'title': 'دوره کیک و کوکی',
-      'subtitle': 'مدرن و اصول دکوراتوری کیک',
+      'subtitle': 'آموزش تخصصی منوی کافی شاپ',
       'image': 'assets/images/banner5.png',
     },
     {
