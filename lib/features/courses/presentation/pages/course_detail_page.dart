@@ -397,7 +397,7 @@ class CourseDetailPage extends ConsumerWidget {
                             border: Border.all(color: Colors.green.shade300),
                           ),
                           child: const Text(
-                            'شما دانشجوی این دوره هستید ✔',
+                            'شما هنرجوی این دوره هستید ✔',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Colors.green,
