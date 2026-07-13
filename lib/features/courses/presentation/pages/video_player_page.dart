@@ -33,18 +33,12 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage> {
   bool _isLoading = true;
   bool _hasError = false;
 
-  // متغیرهای مربوط به حرکت شناور واترمارک
-  final Random _random = Random();
-  Timer? _watermarkTimer;
-  Alignment _watermarkAlignment = Alignment.center;
-
   @override
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _secureScreen();
     _initializePlayer();
-    _startWatermarkMovement();
   }
 
   Future<void> _secureScreen() async {
@@ -59,21 +53,6 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage> {
     }
   }
 
-  // ایجاد حرکت نرم و پیوسته برای واترمارک
-  void _startWatermarkMovement() {
-    // هر ۴ ثانیه یک مقصد جدید تولید می‌شود و انیمیشن به نرمی به سمت آن می‌رود
-    _watermarkTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
-      if (mounted) {
-        setState(() {
-          // تولید اعداد تصادفی بین -0.9 و 0.9 تا متن همیشه داخل کادر بماند و به لبه‌ها نچسبد
-          final x = (_random.nextDouble() * 1.8) - 0.9;
-          final y = (_random.nextDouble() * 1.8) - 0.9;
-          _watermarkAlignment = Alignment(x, y);
-        });
-      }
-    });
-  }
-
   Future<void> _initializePlayer() async {
     try {
       final dio = ref.read(dioProvider);
@@ -83,10 +62,16 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage> {
       final ticket = response.data['ticket'];
 
       final url =
-          '${AppConstants.apiBaseUrl}/courses/${widget.lessonId}/stream/playlist.m3u8?ticket=$ticket';
+          '${AppConstants.apiBaseUrl}/courses/${widget
+          .lessonId}/stream/playlist.m3u8?ticket=$ticket';
 
       _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(url));
       await _videoPlayerController!.initialize();
+
+      // خواندن شماره موبایل کاربر برای پاس دادن به واترمارک
+      final userPhone = ref
+          .read(authProvider)
+          .phoneNumber ?? 'کاربر رویال کیک';
 
       _chewieController = ChewieController(
         videoPlayerController: _videoPlayerController!,
@@ -102,6 +87,8 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage> {
           backgroundColor: Colors.white.withOpacity(0.3),
           bufferedColor: Colors.white.withOpacity(0.6),
         ),
+        // 🔥 معجزه اصلی اینجاست؛ واترمارک را به بخش overlay چوی اضافه می‌کنیم
+        overlay: MovingWatermark(userPhone: userPhone),
         placeholder: Container(
           color: Colors.black,
           child: const Center(
@@ -130,7 +117,6 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage> {
       }
     }
 
-    _watermarkTimer?.cancel();
     _videoPlayerController?.dispose();
     _chewieController?.dispose();
     super.dispose();
@@ -138,9 +124,6 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage> {
 
   @override
   Widget build(BuildContext context) {
-    // خواندن شماره موبایل از استیت (با همان آپدیتی که در پیام قبل دادیم)
-    final userPhone = ref.watch(authProvider).phoneNumber ?? 'کاربر رویال کیک';
-
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
@@ -165,59 +148,97 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage> {
               ? const CircularProgressIndicator(color: AppColors.accent)
               : _hasError
               ? const Text(
-                  'خطا در بارگذاری ویدیو',
-                  style: TextStyle(color: Colors.white, fontFamily: 'Samim'),
-                )
+            'خطا در بارگذاری ویدیو',
+            style: TextStyle(color: Colors.white, fontFamily: 'Samim'),
+          )
               : _chewieController != null &&
-                    _chewieController!.videoPlayerController.value.isInitialized
+              _chewieController!.videoPlayerController.value.isInitialized
               ? AspectRatio(
-                  // AspectRatio باعث می‌شود Stack دقیقاً و مو به مو هم‌اندازه خودِ ویدیو شود
-                  aspectRatio: _chewieController!
-                      .videoPlayerController
-                      .value
-                      .aspectRatio,
-                  child: Stack(
-                    children: [
-                      // لایه اصلی پلیر
-                      Chewie(controller: _chewieController!),
-
-                      // لایه امنیتی واترمارک متحرک
-                      IgnorePointer(
-                        child: AnimatedAlign(
-                          alignment: _watermarkAlignment,
-                          duration: const Duration(seconds: 4),
-                          // زمان برابر با تایمر برای حرکت نرم
-                          curve: Curves.linear,
-                          // سرعت ثابت و یکنواخت در حرکت
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            child: Text(
-                              userPhone,
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.2),
-                                // شفافیت ملایم
-                                fontSize: 16,
-                                fontWeight: FontWeight.w900,
-                                fontFamily: 'Samim',
-                                shadows: [
-                                  Shadow(
-                                    offset: const Offset(1, 1),
-                                    blurRadius: 3.0,
-                                    color: Colors.black.withOpacity(0.4),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
+            aspectRatio: _chewieController!
+                .videoPlayerController
+                .value
+                .aspectRatio,
+            child: Chewie(controller: _chewieController!),
+          )
               : const SizedBox.shrink(),
+        ),
+      ),
+    );
+  }
+}
+
+// 🔴 ویجت مستقل و هوشمند واترمارک متحرک برای پشتیبانی از حالت FullScreen
+// 🔴 ویجت اصلاح‌شده واترمارک با سایز بزرگ‌تر و وضوح بیشتر
+class MovingWatermark extends StatefulWidget {
+  final String userPhone;
+
+  const MovingWatermark({super.key, required this.userPhone});
+
+  @override
+  State<MovingWatermark> createState() => _MovingWatermarkState();
+}
+
+class _MovingWatermarkState extends State<MovingWatermark> {
+  final Random _random = Random();
+  Timer? _watermarkTimer;
+  Alignment _watermarkAlignment = Alignment.center;
+
+  @override
+  void initState() {
+    super.initState();
+    _startWatermarkMovement();
+  }
+
+  void _startWatermarkMovement() {
+    _watermarkTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (mounted) {
+        setState(() {
+          final x = (_random.nextDouble() * 1.8) - 0.9;
+          final y = (_random.nextDouble() * 1.8) - 0.9;
+          _watermarkAlignment = Alignment(x, y);
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _watermarkTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedAlign(
+        alignment: _watermarkAlignment,
+        duration: const Duration(seconds: 4),
+        curve: Curves.linear,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            widget.userPhone,
+            style: TextStyle(
+              // 🔴 تغییرات اعمال شده:
+              color: Colors.white.withOpacity(0.45),
+              // افزایش وضوح (از ۰.۲۵ به ۰.۴۵)
+              fontSize: 19,
+              // بزرگ‌تر شدن ابعاد متن (از ۱۵ به ۱۹)
+              fontWeight: FontWeight.w900,
+              // ضخامت فوق‌العاده برای خوانایی بهتر
+              fontFamily: 'Samim',
+              shadows: [
+                Shadow(
+                  offset: const Offset(1.5, 1.5),
+                  // سایه کمی پهن‌تر برای تفکیک از پس‌زمینه ویدیو
+                  blurRadius: 4.0,
+                  // محوشدگی ملایم دور سایه
+                  color: Colors.black.withOpacity(
+                      0.7), // تیره کردن سایه برای خوانایی روی بخش‌های سفید ویدیو
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

@@ -6,7 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../home/presentation/widgets/layout_widgets.dart';
 import '../../../orders/providers/cart_provider.dart';
 import '../../providers/course_detail_provider.dart';
-import '../../../auth/providers/auth_provider.dart'; // اضافه شدن پرووایدر احراز هویت
+import '../../../auth/providers/auth_provider.dart';
 
 class CourseDetailPage extends ConsumerWidget {
   final int courseId;
@@ -33,6 +33,22 @@ class CourseDetailPage extends ConsumerWidget {
     final m = minutes % 60;
     if (h > 0) return '$h ساعت و $m دقیقه';
     return '$m دقیقه';
+  }
+
+  // 🔴 متد کمکی برای ساخت کاورهای موقت (زمانی که cover_url در بک‌اند ثبت نشده یا null است)
+  Widget _buildPlaceholderCover() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.primary, Color(0xff146952)],
+          begin: Alignment.bottomRight,
+          end: Alignment.topLeft,
+        ),
+      ),
+      child: const Center(
+        child: Icon(Icons.cake_rounded, color: Colors.white30, size: 24),
+      ),
+    );
   }
 
   @override
@@ -235,6 +251,7 @@ class CourseDetailPage extends ConsumerWidget {
                                     ),
                                   )
                                 else
+                                  // 🔴 بخش اصلاح‌شده و شکیل لیست جلسات همراه با تصاویر بندانگشتی و افکت گلس‌مورفیسم دسترسی ویدیو
                                   ListView.builder(
                                     shrinkWrap: true,
                                     physics:
@@ -243,27 +260,43 @@ class CourseDetailPage extends ConsumerWidget {
                                     itemBuilder: (context, index) {
                                       final lesson = lessons[index];
                                       final isFree = lesson['is_free'] == true;
-
-                                      // آیا کاربر حق تماشای این ویدیو را دارد؟
-                                      // (یا ویدیو رایگان است یا کاربر کل دوره را خریده)
                                       final canWatch = isFree || isPurchased;
+
+                                      final String? coverUrl =
+                                          lesson['cover_url'];
+                                      final String? fullCoverUrl =
+                                          coverUrl != null
+                                          ? AppConstants.getFullImageUrl(
+                                              coverUrl,
+                                            )
+                                          : null;
 
                                       return Container(
                                         margin: const EdgeInsets.only(
-                                          bottom: 12,
+                                          bottom: 14,
                                         ),
                                         decoration: BoxDecoration(
                                           color: Colors.white,
                                           borderRadius: BorderRadius.circular(
-                                            16,
+                                            18,
                                           ),
                                           border: Border.all(
-                                            color: Colors.grey.shade200,
+                                            color: Colors.grey.shade100,
+                                            width: 1.5,
                                           ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(
+                                                0.015,
+                                              ),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
                                         ),
                                         child: InkWell(
                                           borderRadius: BorderRadius.circular(
-                                            16,
+                                            18,
                                           ),
                                           onTap: () {
                                             if (canWatch) {
@@ -274,7 +307,6 @@ class CourseDetailPage extends ConsumerWidget {
                                                   builder: (context) =>
                                                       VideoPlayerPage(
                                                         lessonId: lesson['id'],
-                                                        // باید آیدی جلسه پاس داده بشه
                                                         lessonTitle:
                                                             lesson['title'] ??
                                                             'جلسه آموزشی',
@@ -299,54 +331,222 @@ class CourseDetailPage extends ConsumerWidget {
                                               );
                                             }
                                           },
-                                          child: ListTile(
-                                            leading: Container(
-                                              padding: const EdgeInsets.all(10),
-                                              decoration: BoxDecoration(
-                                                color: canWatch
-                                                    ? AppColors.primary
-                                                          .withOpacity(0.1)
-                                                    : Colors.grey.shade200,
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: Icon(
-                                                canWatch
-                                                    ? Icons.play_arrow_rounded
-                                                    : Icons
-                                                          .lock_outline_rounded,
-                                                color: canWatch
-                                                    ? AppColors.primary
-                                                    : Colors.grey,
-                                                size: 20,
-                                              ),
-                                            ),
-                                            title: Text(
-                                              lesson['title'] ?? 'جلسه',
-                                              style: TextStyle(
-                                                fontFamily: 'Samim',
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 13,
-                                                color: canWatch
-                                                    ? AppColors.darkText
-                                                    : Colors.grey.shade600,
-                                              ),
-                                            ),
-                                            subtitle: Row(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(10.0),
+                                            child: Row(
                                               children: [
-                                                const Icon(
-                                                  Icons.access_time,
-                                                  size: 14,
-                                                  color: Colors.black45,
+                                                // بخش تصویر کاور (Thumbnail) با نسبت تصویر بهینه و اورلی هوشمند
+                                                Stack(
+                                                  children: [
+                                                    Container(
+                                                      width: 95,
+                                                      height: 65,
+                                                      decoration: BoxDecoration(
+                                                        color:
+                                                            Colors.grey.shade50,
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              12,
+                                                            ),
+                                                      ),
+                                                      child: ClipRRect(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              12,
+                                                            ),
+                                                        child:
+                                                            fullCoverUrl != null
+                                                            ? Image.network(
+                                                                fullCoverUrl,
+                                                                fit: BoxFit
+                                                                    .cover,
+                                                                errorBuilder:
+                                                                    (
+                                                                      context,
+                                                                      error,
+                                                                      stackTrace,
+                                                                    ) =>
+                                                                        _buildPlaceholderCover(),
+                                                              )
+                                                            : _buildPlaceholderCover(),
+                                                      ),
+                                                    ),
+                                                    Positioned.fill(
+                                                      child: Container(
+                                                        decoration: BoxDecoration(
+                                                          color: canWatch
+                                                              ? Colors.black
+                                                                    .withOpacity(
+                                                                      0.15,
+                                                                    )
+                                                              : Colors.black
+                                                                    .withOpacity(
+                                                                      0.4,
+                                                                    ),
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                12,
+                                                              ),
+                                                        ),
+                                                        child: Center(
+                                                          child: Container(
+                                                            padding:
+                                                                const EdgeInsets.all(
+                                                                  6,
+                                                                ),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                                  color: Colors
+                                                                      .white
+                                                                      .withOpacity(
+                                                                        0.25,
+                                                                      ),
+                                                                  shape: BoxShape
+                                                                      .circle,
+                                                                ),
+                                                            child: Icon(
+                                                              canWatch
+                                                                  ? Icons
+                                                                        .play_arrow_rounded
+                                                                  : Icons
+                                                                        .lock_outline_rounded,
+                                                              color:
+                                                                  Colors.white,
+                                                              size: 18,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  _formatDuration(
-                                                    lesson['duration'] ?? 0,
+                                                const SizedBox(width: 14),
+
+                                                // بخش متون (عنوان درس، زمان و نشانگر رایگان بودن)
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        lesson['title'] ??
+                                                            'جلسه آموزشی',
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                        style: TextStyle(
+                                                          fontFamily: 'Samim',
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: 13.5,
+                                                          color: canWatch
+                                                              ? AppColors
+                                                                    .darkText
+                                                              : Colors
+                                                                    .grey
+                                                                    .shade500,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 8),
+                                                      Row(
+                                                        children: [
+                                                          Icon(
+                                                            Icons
+                                                                .access_time_rounded,
+                                                            size: 13,
+                                                            color: canWatch
+                                                                ? Colors.black45
+                                                                : Colors
+                                                                      .grey
+                                                                      .shade400,
+                                                          ),
+                                                          const SizedBox(
+                                                            width: 4,
+                                                          ),
+                                                          Text(
+                                                            _formatDuration(
+                                                              lesson['duration'] ??
+                                                                  0,
+                                                            ),
+                                                            style: TextStyle(
+                                                              fontFamily:
+                                                                  'Samim',
+                                                              fontSize: 11,
+                                                              color: canWatch
+                                                                  ? Colors
+                                                                        .black54
+                                                                  : Colors
+                                                                        .grey
+                                                                        .shade400,
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                            width: 12,
+                                                          ),
+                                                          if (isFree)
+                                                            Container(
+                                                              padding:
+                                                                  const EdgeInsets.symmetric(
+                                                                    horizontal:
+                                                                        6,
+                                                                    vertical: 2,
+                                                                  ),
+                                                              decoration: BoxDecoration(
+                                                                color: Colors
+                                                                    .green
+                                                                    .withOpacity(
+                                                                      0.12,
+                                                                    ),
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      6,
+                                                                    ),
+                                                              ),
+                                                              child: const Text(
+                                                                'رایگان',
+                                                                style: TextStyle(
+                                                                  fontFamily:
+                                                                      'Samim',
+                                                                  fontSize: 10,
+                                                                  color: Colors
+                                                                      .green,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                        ],
+                                                      ),
+                                                    ],
                                                   ),
-                                                  style: const TextStyle(
-                                                    fontFamily: 'Samim',
-                                                    fontSize: 11,
-                                                    color: Colors.black54,
+                                                ),
+
+                                                // نمایش شماره ترتیب جلسه در سمت چپ (به عنوان ایندکس راهنما)
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 10,
+                                                        vertical: 4,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.grey.shade50,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          10,
+                                                        ),
+                                                  ),
+                                                  child: Text(
+                                                    '${index + 1}',
+                                                    style: TextStyle(
+                                                      fontFamily: 'Samim',
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color:
+                                                          Colors.grey.shade400,
+                                                    ),
                                                   ),
                                                 ),
                                               ],
