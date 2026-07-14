@@ -5,10 +5,36 @@ import '../../../../core/network/dio_client.dart';
 // پرووایدر مدیریت وضعیت نوار ناوبری پایین
 final bottomNavIndexProvider = StateProvider<int>((ref) => 0);
 final authStateProvider = StateProvider<bool>((ref) => false);
-// پرووایدر دوره‌ها
+
+// 🔴 پرووایدر فیلتر هوشمند دوره‌ها (null = همه، true = رایگان، false = پولی)
+final courseFilterProvider = StateProvider<bool?>((ref) => null);
+
+// 🔴 پرووایدر دوره‌ها (این پرووایدر حالا به فیلتر بالا گوش می‌دهد)
 final coursesProvider = FutureProvider<List<dynamic>>((ref) async {
+  final isFree = ref.watch(courseFilterProvider);
   final dio = ref.read(dioProvider);
-  final response = await dio.get('/courses/?skip=0&limit=10');
+
+  String url =
+      '/courses/?skip=0&limit=50'; // محدودیت بالاتر برای لود بهتر لیست کامل
+  if (isFree != null) {
+    url += '&is_free=$isFree';
+  }
+
+  final response = await dio.get(url);
+  return response.data as List<dynamic>;
+});
+
+// 🔴 پرووایدر جدید مخصوص دوره‌های پولی (تخصصی) روی داشبورد
+final homePaidCoursesProvider = FutureProvider<List<dynamic>>((ref) async {
+  final dio = ref.read(dioProvider);
+  final response = await dio.get('/courses/?skip=0&limit=10&is_free=false');
+  return response.data as List<dynamic>;
+});
+
+// 🔴 پرووایدر جدید مخصوص آموزش‌های رایگان روی داشبورد
+final homeFreeCoursesProvider = FutureProvider<List<dynamic>>((ref) async {
+  final dio = ref.read(dioProvider);
+  final response = await dio.get('/courses/?skip=0&limit=10&is_free=true');
   return response.data as List<dynamic>;
 });
 
@@ -19,7 +45,7 @@ class GalleryState {
   final bool isLoading;
   final bool isFetchingMore;
   final String? error;
-  final List<dynamic> images; // تصاویری که در حال حاضر روی صفحه هستند
+  final List<dynamic> images;
   final bool hasMore;
 
   GalleryState({
@@ -49,29 +75,23 @@ class GalleryState {
 
 class GalleryNotifier extends StateNotifier<GalleryState> {
   final Ref ref;
-  final int _limit = 12; // تعداد عکسی که در هر بار لود اضافه می‌شود
+  final int _limit = 12;
 
-  List<dynamic> _allShuffledImages = []; // مخزن اصلی و شافل شده کل عکس‌ها
-  int _currentIndex = 0; // نشانگر اینکه تا کجای لیست پیش رفته‌ایم
+  List<dynamic> _allShuffledImages = [];
+  int _currentIndex = 0;
 
   GalleryNotifier(this.ref) : super(GalleryState()) {
     loadInitial();
   }
 
-  // ۱. دریافت یکباره، شافل کردن کل دیتا و نمایش ۱۲ تای اول
   Future<void> loadInitial() async {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final dio = ref.read(dioProvider);
-
-      // گرفتن مثلاً ۲۰۰ عکس جدید از سرور با یک ریکوئست سبک
       final response = await dio.get('/gallery/?skip=0&limit=200');
       _allShuffledImages = List<dynamic>.from(response.data);
-
-      // جادوی اصلی: شافل کردن کل ۲۰۰ عکس همین اول کار
       _allShuffledImages.shuffle(Random());
 
-      // جدا کردن ۱۲ عکس اول برای نمایش اولیه
       final initialData = _allShuffledImages.take(_limit).toList();
       _currentIndex = initialData.length;
 
@@ -85,16 +105,12 @@ class GalleryNotifier extends StateNotifier<GalleryState> {
     }
   }
 
-  // ۲. نمایش ۱۲ عکس بعدی از داخل مخزن شافل شده (بدون نیاز به ریکوئست جدید)
   Future<void> loadMore() async {
     if (!state.hasMore || state.isFetchingMore) return;
 
     state = state.copyWith(isFetchingMore: true);
-
-    // یک دیلی کوچیک واسه اینکه دکمه لودینگش نرم و طبیعی به نظر بیاد (UX بهتر)
     await Future.delayed(const Duration(milliseconds: 400));
 
-    // برداشتن ۱۲ عکس بعدی از جایی که دفعه قبل متوقف شدیم
     final newData = _allShuffledImages
         .skip(_currentIndex)
         .take(_limit)
@@ -103,22 +119,18 @@ class GalleryNotifier extends StateNotifier<GalleryState> {
 
     state = state.copyWith(
       isFetchingMore: false,
-      images: [...state.images, ...newData], // چسباندن عکس‌های جدید به قبلی‌ها
-      hasMore:
-          _currentIndex <
-          _allShuffledImages.length, // چک کردن اینکه بازم عکس داریم یا نه
+      images: [...state.images, ...newData],
+      hasMore: _currentIndex < _allShuffledImages.length,
     );
   }
 }
 
-// جایگزینی پرووایدر گالری
 final galleryProvider = StateNotifierProvider<GalleryNotifier, GalleryState>((
   ref,
 ) {
   return GalleryNotifier(ref);
 });
 
-// تابع فرمت قیمت
 String formatPrice(dynamic price) {
   if (price == null || price == 0) return 'رایگان';
   final strPrice = price.toString().replaceAllMapped(

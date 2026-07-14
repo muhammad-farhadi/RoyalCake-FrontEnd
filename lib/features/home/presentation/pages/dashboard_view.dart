@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
-import 'package:flutter/foundation.dart'; // برای kIsWeb
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -67,7 +67,7 @@ class DashboardView extends ConsumerWidget {
           ),
 
           // ===================================================================
-          // جایگزینی بخش "دسته بندی محبوب" با ساختار وب‌سایت (intro-courses-section)
+          // بخش دایره‌های دسته‌بندی وب‌سایت (intro-courses-section)
           // ===================================================================
           Container(
             width: double.infinity,
@@ -87,29 +87,51 @@ class DashboardView extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // 🔴 دایره آموزش رایگان همراه با قابلیت کلیک انتقال و فیلتر
                         _buildIntroCourseItem(
                           imageUrl:
                               '/static/img/20230829_150959_E3E8C2F7-32A7-47DB-B707-8A377F5B7F2D.webp',
                           title: 'آموزش رایگان',
                           ref: ref,
+                          onTap: () {
+                            ref.read(courseFilterProvider.notifier).state =
+                                true; // اعمال فیلتر رایگان
+                            ref.read(bottomNavIndexProvider.notifier).state =
+                                1; // پرش به تب دوره‌ها
+                          },
                         ),
                         _buildIntroCourseItem(
                           imageUrl:
                               '/static/img/20230829_151140_89E97E06-CE04-4BBA-9BFB-9E110BC9FEC8.webp',
                           title: 'دوره کیک و کوکی',
                           ref: ref,
+                          onTap: () {
+                            ref.read(courseFilterProvider.notifier).state =
+                                null;
+                            ref.read(bottomNavIndexProvider.notifier).state = 1;
+                          },
                         ),
                         _buildIntroCourseItem(
                           imageUrl:
                               '/static/img/20230829_153101_E074A852-5758-4302-B7E0-203B36B34DCD.webp',
                           title: 'دوره چیز کیک',
                           ref: ref,
+                          onTap: () {
+                            ref.read(courseFilterProvider.notifier).state =
+                                null;
+                            ref.read(bottomNavIndexProvider.notifier).state = 1;
+                          },
                         ),
                         _buildIntroCourseItem(
                           imageUrl:
                               '/static/img/20230829_095147_72A432F7-3E40-48F7-A618-4FFCBC50095B.webp',
                           title: 'دوره شیرینی نوروز',
                           ref: ref,
+                          onTap: () {
+                            ref.read(courseFilterProvider.notifier).state =
+                                null;
+                            ref.read(bottomNavIndexProvider.notifier).state = 1;
+                          },
                         ),
                       ],
                     ),
@@ -119,6 +141,7 @@ class DashboardView extends ConsumerWidget {
                 Center(
                   child: ElevatedButton(
                     onPressed: () {
+                      ref.read(courseFilterProvider.notifier).state = null;
                       ref.read(bottomNavIndexProvider.notifier).state = 1;
                     },
                     style: ElevatedButton.styleFrom(
@@ -147,144 +170,34 @@ class DashboardView extends ConsumerWidget {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'آخرین دوره‌ها',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Samim',
-                    color: AppColors.darkText,
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: () =>
-                      ref.read(bottomNavIndexProvider.notifier).state = 1,
-                  icon: const Icon(
-                    Icons.arrow_forward_ios,
-                    size: 12,
-                    color: AppColors.accent,
-                  ),
-                  label: const Text(
-                    'مشاهده همه',
-                    style: TextStyle(
-                      fontFamily: 'Samim',
-                      color: AppColors.accent,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+
+          // 🔴 ۱. ردیف دوره‌های تخصصی (پولی) روی داشبورد
+          _buildCourseSection(
+            title: 'آخرین دوره‌های تخصصی',
+            coursesState: ref.watch(homePaidCoursesProvider),
+            context: context,
+            onShowAll: () {
+              ref.read(courseFilterProvider.notifier).state =
+                  false; // فیلتر دوره‌های غیر رایگان
+              ref.read(bottomNavIndexProvider.notifier).state = 1;
+            },
           ),
-          SizedBox(
-            height: 220,
-            child: ref
-                .watch(coursesProvider)
-                .when(
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  ),
-                  error: (error, stack) => const Center(
-                    child: Text(
-                      'خطا در بارگذاری دوره‌ها',
-                      style: TextStyle(fontFamily: 'Samim'),
-                    ),
-                  ),
-                  data: (courses) {
-                    if (courses.isEmpty) {
-                      return const Center(
-                        child: Text(
-                          'دوره‌ای یافت نشد',
-                          style: TextStyle(fontFamily: 'Samim'),
-                        ),
-                      );
-                    }
-                    return ScrollConfiguration(
-                      behavior: AppScrollBehavior(),
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        itemCount: courses.length + 1,
-                        itemBuilder: (context, index) {
-                          if (index == courses.length) {
-                            return Container(
-                              width: 140,
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(
-                                  alpha: 0.05,
-                                ),
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: AppColors.primary.withValues(
-                                    alpha: 0.1,
-                                  ),
-                                ),
-                              ),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(18),
-                                onTap: () =>
-                                    ref
-                                            .read(
-                                              bottomNavIndexProvider.notifier,
-                                            )
-                                            .state =
-                                        1,
-                                child: const Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.arrow_forward_ios_rounded,
-                                      color: AppColors.primary,
-                                      size: 24,
-                                    ),
-                                    SizedBox(height: 12),
-                                    Text(
-                                      'مشاهده\nهمه دوره‌ها',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontFamily: 'Samim',
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }
-                          final course = courses[index];
-                          return CourseCard(
-                            title: course['title'] ?? '',
-                            price: formatPrice(course['price']),
-                            imageUrl: course['image_url'] ?? '',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      CourseDetailPage(courseId: course['id']),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ),
+
+          const SizedBox(height: 16),
+
+          // 🔴 ۲. ردیف آموزش‌های رایگان روی داشبورد
+          _buildCourseSection(
+            title: 'آموزش‌های رایگان',
+            coursesState: ref.watch(homeFreeCoursesProvider),
+            context: context,
+            onShowAll: () {
+              ref.read(courseFilterProvider.notifier).state =
+                  true; // فیلتر دوره‌های رایگان
+              ref.read(bottomNavIndexProvider.notifier).state = 1;
+            },
           ),
+
+          const SizedBox(height: 16),
 
           // بخش گالری تصاویر رویال کیک
           Padding(
@@ -348,7 +261,6 @@ class DashboardView extends ConsumerWidget {
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     itemCount: displayImages.length + 1,
-                    // 🔴 جلوگیری از زنده نگه داشتن تامنیل‌های اسکرول شده برای حفاظت از رم
                     addAutomaticKeepAlives: false,
                     addRepaintBoundaries: false,
                     itemBuilder: (context, index) {
@@ -400,7 +312,6 @@ class DashboardView extends ConsumerWidget {
                           'home_gallery_image_${image['id'] ?? index}';
                       return GestureDetector(
                         onTap: () {
-                          // پاکسازی رم قبل از باز کردن عکس تمام صفحه در وب
                           if (kIsWeb)
                             PaintingBinding.instance.imageCache.clear();
                           Navigator.push(
@@ -436,7 +347,6 @@ class DashboardView extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(16),
                             child: Hero(
                               tag: homeHeroTag,
-                              // 🔴 تغییر از Image.network به UniversalImage + cacheWidth بسیار سبک (۲۰۰ پیکسل)
                               child: UniversalImage(
                                 imageUrl: fullImageUrl,
                                 fit: BoxFit.cover,
@@ -464,11 +374,151 @@ class DashboardView extends ConsumerWidget {
     );
   }
 
-  // متد کمکی برای ساخت تر تمیز آیتم‌های دایره‌ای وب‌سایت (intro-course-item)
+  // 🔴 متد کمکی و هوشمند برای ساخت ردیف‌های تفکیک‌شده دوره جهت دوری از تکرار کد بالا
+  Widget _buildCourseSection({
+    required String title,
+    required AsyncValue<List<dynamic>> coursesState,
+    required VoidCallback onShowAll,
+    required BuildContext context,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Samim',
+                  color: AppColors.darkText,
+                ),
+              ),
+              TextButton.icon(
+                onPressed: onShowAll,
+                icon: const Icon(
+                  Icons.arrow_forward_ios,
+                  size: 12,
+                  color: AppColors.accent,
+                ),
+                label: const Text(
+                  'مشاهده همه',
+                  style: TextStyle(
+                    fontFamily: 'Samim',
+                    color: AppColors.accent,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 220,
+          child: coursesState.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ),
+            error: (error, stack) => const Center(
+              child: Text(
+                'خطا در بارگذاری دوره‌ها',
+                style: TextStyle(fontFamily: 'Samim'),
+              ),
+            ),
+            data: (courses) {
+              if (courses.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'دوره‌ای در این بخش یافت نشد',
+                    style: TextStyle(fontFamily: 'Samim'),
+                  ),
+                );
+              }
+              return ScrollConfiguration(
+                behavior: AppScrollBehavior(),
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  itemCount: courses.length + 1,
+                  itemBuilder: (context, index) {
+                    if (index == courses.length) {
+                      return Container(
+                        width: 140,
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                          ),
+                        ),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(18),
+                          onTap: onShowAll,
+                          child: const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                color: AppColors.primary,
+                                size: 24,
+                              ),
+                              SizedBox(height: 12),
+                              Text(
+                                'مشاهده\nهمه دوره‌ها',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: 'Samim',
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    final course = courses[index];
+                    return CourseCard(
+                      title: course['title'] ?? '',
+                      price: formatPrice(course['price']),
+                      imageUrl: course['image_url'] ?? '',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                CourseDetailPage(courseId: course['id']),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // متد اصلاح‌شده دایره‌ها همراه با پذیرش onTap
   Widget _buildIntroCourseItem({
     required String imageUrl,
     required String title,
     required WidgetRef ref,
+    VoidCallback? onTap, // 🔴 اضافه شدن فلگ کلیک
   }) {
     final fullUrl = AppConstants.getFullImageUrl(imageUrl);
 
@@ -480,67 +530,59 @@ class DashboardView extends ConsumerWidget {
 
         return Padding(
           padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: circleSize,
-                height: circleSize,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.accent,
-                    width: circleSize * 0.03,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+          child: InkWell(
+            // 🔴 تبدیل به InkWell جهت هندل کردن کلیک
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(100),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: circleSize,
+                  height: circleSize,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.accent,
+                      width: circleSize * 0.03,
                     ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(100),
-                  // 🔴 تغییر از Image.network به UniversalImage + cacheWidth مناسب دایره‌ها (۲۵۰ پیکسل)
-                  child: UniversalImage(
-                    imageUrl: fullUrl,
-                    fit: BoxFit.cover,
-                    cacheWidth: 250,
-                    errorWidget: const Icon(
-                      Icons.broken_image_outlined,
-                      color: Colors.grey,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(100),
+                    child: UniversalImage(
+                      imageUrl: fullUrl,
+                      fit: BoxFit.cover,
+                      cacheWidth: 250,
+                      errorWidget: const Icon(
+                        Icons.broken_image_outlined,
+                        color: Colors.grey,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                  fontFamily: 'Samim',
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                    fontFamily: 'Samim',
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
     );
-  }
-}
-
-// کامپوننت کمکی جهت عدم تداخل در بریدگی مرزهای دایره تصویر
-class ClipOAuth extends StatelessWidget {
-  final Widget child;
-
-  const ClipOAuth({super.key, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return child;
   }
 }
 

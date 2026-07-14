@@ -605,11 +605,11 @@ class MainBottomNav extends ConsumerWidget {
             isActive: currentTab == 1,
             onTap: () {
               Navigator.of(context).popUntil((route) => route.isFirst);
+              ref.read(courseFilterProvider.notifier).state = null; // ریست کامل فیلتر
               ref.read(bottomNavIndexProvider.notifier).state = 1;
             },
           ),
 
-          // 🔴 اضافه شدن دکمه نظرات هنرجویان به نوار ناوبری پایین صفحه (تب ۶)
           BottomNavShortcut(
             icon: Icons.rate_review_outlined,
             label: 'نتایج هنرجویان',

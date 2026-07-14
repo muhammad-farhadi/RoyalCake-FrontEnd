@@ -119,7 +119,7 @@ class CourseCard extends StatelessWidget {
                   width: double.infinity,
                   child: Image.network(
                     fullUrl,
-                    fit: BoxFit.cover,
+                    fit: BoxFit.contain, // 🔴 تغییر از cover به contain برای نمایش کامل عکس دوره در داشبورد
                     errorBuilder: (context, error, stackTrace) => const Center(
                       child: Icon(
                         Icons.broken_image_outlined,

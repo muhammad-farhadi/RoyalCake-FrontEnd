@@ -25,6 +25,8 @@ dependencies:
   file_picker: ^11.0.2
   image_picker: ^1.2.1
   url_launcher: ^6.3.2
+  syncfusion_flutter_pdfviewer: ^31.1.19
+  printing: ^5.14.3
 
 
 dev_dependencies:
