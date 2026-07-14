@@ -1,8 +1,10 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:royalcakes/features/courses/presentation/pages/video_player_page.dart';
 import 'package:royalcakes/features/courses/presentation/pages/pdf_viewer_page.dart'; // ایمپورت نمایشگر امن PDF
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/network/dio_client.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../home/presentation/widgets/layout_widgets.dart';
 import '../../../orders/providers/cart_provider.dart';
@@ -995,51 +997,125 @@ class _CourseDetailPageState extends ConsumerState<CourseDetailPage> {
                                     return;
                                   }
 
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'در حال افزودن...',
-                                        style: TextStyle(fontFamily: 'Samim'),
+                                  // تشخیص هوشمند رایگان بودن دوره
+                                  final isFreeCourse =
+                                      course['price'] == 0 ||
+                                      course['price'] == null;
+
+                                  if (isFreeCourse) {
+                                    // 🔴 سناریوی اول: فعال‌سازی مستقیم دوره رایگان بدون درگیر کردن سبد خرید
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'در حال فعال‌سازی دوره رایگان...',
+                                          style: TextStyle(fontFamily: 'Samim'),
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                  try {
-                                    final success = await ref
-                                        .read(cartProvider.notifier)
-                                        .addToCart(widget.courseId);
-                                    if (success && context.mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          backgroundColor: Colors.green,
-                                          content: Text(
-                                            'به سبد خرید اضافه شد.',
-                                            style: TextStyle(
-                                              fontFamily: 'Samim',
+                                    );
+                                    try {
+                                      final dio = ref.read(dioProvider);
+                                      // ارسال درخواست به روتر جدید بک‌آند شما
+                                      final response = await dio.post(
+                                        '/orders/${widget.courseId}/enroll-free',
+                                      );
+
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).hideCurrentSnackBar();
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            backgroundColor: Colors.green,
+                                            content: Text(
+                                              response.data['detail'] ??
+                                                  'دوره رایگان با موفقیت برای شما فعال شد.',
+                                              style: const TextStyle(
+                                                fontFamily: 'Samim',
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      );
+                                        );
+                                        // 🔴 ابطال کش پرووایدر دوره‌های من برای تغییر فوری وضعیت دکمه پایین صفحه به "شما هنرجوی این دوره هستید ✔"
+                                        ref.invalidate(myCoursesProvider);
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        String errorMsg =
+                                            'خطا در فعال‌سازی دوره رایگان';
+                                        if (e is DioException &&
+                                            e.response?.data != null) {
+                                          final data = e.response!.data;
+                                          if (data is Map &&
+                                              data.containsKey('detail')) {
+                                            errorMsg = data['detail']
+                                                .toString();
+                                          }
+                                        }
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            backgroundColor: Colors.redAccent,
+                                            content: Text(
+                                              errorMsg,
+                                              style: const TextStyle(
+                                                fontFamily: 'Samim',
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }
                                     }
-                                  } catch (e) {
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          backgroundColor: Colors.redAccent,
-                                          content: Text(
-                                            e.toString().replaceAll(
-                                              'Exception: ',
-                                              '',
-                                            ),
-                                            style: const TextStyle(
-                                              fontFamily: 'Samim',
+                                  } else {
+                                    // 🔴 سناریوی دوم: فرآیند قبلی اضافه کردن دوره‌های پولی به سبد خرید
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'در حال افزودن به سبد خرید...',
+                                          style: TextStyle(fontFamily: 'Samim'),
+                                        ),
+                                      ),
+                                    );
+                                    try {
+                                      final success = await ref
+                                          .read(cartProvider.notifier)
+                                          .addToCart(widget.courseId);
+                                      if (success && context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            backgroundColor: Colors.green,
+                                            content: Text(
+                                              'به سبد خرید اضافه شد.',
+                                              style: TextStyle(
+                                                fontFamily: 'Samim',
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      );
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            backgroundColor: Colors.redAccent,
+                                            content: Text(
+                                              e.toString().replaceAll(
+                                                'Exception: ',
+                                                '',
+                                              ),
+                                              style: const TextStyle(
+                                                fontFamily: 'Samim',
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }
                                     }
                                   }
                                 },
@@ -1052,9 +1128,13 @@ class _CourseDetailPageState extends ConsumerState<CourseDetailPage> {
                                     borderRadius: BorderRadius.circular(14),
                                   ),
                                 ),
-                                child: const Text(
-                                  'ثبت‌نام در دوره',
-                                  style: TextStyle(
+                                child: Text(
+                                  // تغییر داینامیک متن دکمه متناسب با قیمت دوره
+                                  course['price'] == 0 ||
+                                          course['price'] == null
+                                      ? 'فعال‌سازی رایگان دوره'
+                                      : 'ثبت‌نام در دوره',
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,
