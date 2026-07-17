@@ -1,7 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../data/models/highlight_model.dart';
-import '../../../../features/gallery/presentation/pages/universal_image.dart';
+import 'package:video_player/video_player.dart'; // مطمئن شو این پکیج در پب‌اسپک هست
 import '../../../../core/constants/app_constants.dart';
+import '../../data/models/highlight_model.dart';
 
 class HighlightViewPage extends StatefulWidget {
   final HighlightCategoryModel category;
@@ -12,48 +13,106 @@ class HighlightViewPage extends StatefulWidget {
   State<HighlightViewPage> createState() => _HighlightViewPageState();
 }
 
-// 🔴 اضافه کردن TickerProviderStateMixin برای مدیریت انیمیشن بار بالای صفحه
-class _HighlightViewPageState extends State<HighlightViewPage>
-    with TickerProviderStateMixin {
+class _HighlightViewPageState extends State<HighlightViewPage> {
   int _currentIndex = 0;
-  late PageController _pageController;
-  AnimationController? _animController;
+  VideoPlayerController? _videoController;
+  Timer? _imageTimer;
+  Timer? _progressTimer;
+  double _animationProgress = 0.0;
+  bool _isVideoLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController();
-
-    // راه‌اندازی اولین استوری
-    _initStoryPage(isFirst: true);
+    _playStoryItem();
   }
 
-  // 🔴 تابع اصلی مدیریت و زمان‌بندی هر استوری
-  void _initStoryPage({bool isFirst = false}) {
-    _animController?.dispose();
+  // 🔴 هسته پردازش هوشمند استوری (تشخیص عکس یا ویدیو بودن آیتم مدل)
+  void _playStoryItem() {
+    _cleanCurrentEngine();
 
-    // تعریف انیمیشن ۵ ثانیه‌ای برای هر عکس
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 5),
-    );
+    // دریافت آیتم فعلی از لیست مدل شما
+    final item = widget.category.items[_currentIndex];
 
-    // گوش دادن به پایان انیمیشن برای رفتن به استوری بعدی به صورت خودکار
-    _animController!.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
+    // 💡 نکته: اگر نام پراپرتی‌ها در مدل شما به جای camelCase به صورت کدمارک (video_url) هست، نام آنها را اصلاح کنید.
+    final String? videoUrl = item.videoUrl;
+    final String? imageUrl = item.imageUrl;
+
+    if (videoUrl != null && videoUrl.isNotEmpty) {
+      // 🎥 سناریوی اول: آیتم ویدیو است
+      setState(() {
+        _isVideoLoading = true;
+        _animationProgress = 0.0;
+      });
+
+      final fullVideoUrl = AppConstants.getFullImageUrl(videoUrl);
+
+      _videoController =
+          VideoPlayerController.networkUrl(Uri.parse(fullVideoUrl))
+            ..initialize()
+                .then((_) {
+                  if (!mounted) return;
+                  setState(() {
+                    _isVideoLoading = false;
+                  });
+                  _videoController!.play();
+
+                  // پر کردن نوار پیشرفت بالای صفحه بر اساس زمان واقعی ویدیو
+                  _progressTimer = Timer.periodic(
+                    const Duration(milliseconds: 30),
+                    (timer) {
+                      if (_videoController == null ||
+                          !_videoController!.value.isInitialized)
+                        return;
+                      final duration =
+                          _videoController!.value.duration.inMilliseconds;
+                      final position =
+                          _videoController!.value.position.inMilliseconds;
+                      if (duration > 0) {
+                        setState(() {
+                          _animationProgress = position / duration;
+                        });
+                      }
+                    },
+                  );
+
+                  // رفتن به استوری بعدی به محض تمام شدن ویدیو
+                  _videoController!.addListener(() {
+                    if (_videoController == null) return;
+                    if (_videoController!.value.position >=
+                        _videoController!.value.duration) {
+                      _nextStory();
+                    }
+                  });
+                })
+                .catchError((err) {
+                  _nextStory(); // اگر ویدیو به هر دلیلی خطا داد برو بعدی که کاربر معطل نشه
+                });
+    } else {
+      // 🖼️ سناریوی دوم: آیتم تصویر است (نمایش ۵ ثانیه‌ای استاندارد)
+      setState(() {
+        _isVideoLoading = false;
+        _animationProgress = 0.0;
+      });
+
+      const int durationSeconds = 5;
+      int passedMs = 0;
+
+      _progressTimer = Timer.periodic(const Duration(milliseconds: 30), (
+        timer,
+      ) {
+        passedMs += 30;
+        setState(() {
+          _animationProgress = (passedMs / (durationSeconds * 1000)).clamp(
+            0.0,
+            1.0,
+          );
+        });
+      });
+
+      _imageTimer = Timer(const Duration(seconds: durationSeconds), () {
         _nextStory();
-      }
-    });
-
-    // شروع انیمیشن بار
-    _animController!.forward();
-
-    if (!isFirst) {
-      _pageController.animateToPage(
-        _currentIndex,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+      });
     }
   }
 
@@ -62,10 +121,9 @@ class _HighlightViewPageState extends State<HighlightViewPage>
       setState(() {
         _currentIndex++;
       });
-      _initStoryPage();
+      _playStoryItem();
     } else {
-      // اگر استوری‌ها تمام شد، صفحه بسته شود
-      Navigator.pop(context);
+      Navigator.pop(context); // اتمام تمام بخش‌های هایلایت -> خروج به داشبورد
     }
   }
 
@@ -74,162 +132,139 @@ class _HighlightViewPageState extends State<HighlightViewPage>
       setState(() {
         _currentIndex--;
       });
-      _initStoryPage();
+      _playStoryItem();
     }
   }
 
-  // مدیریت تاچ دستی کاربر
-  void _onTapPage(TapUpDetails details) {
-    final width = MediaQuery.of(context).size.width;
-    final dx = details.globalPosition.dx;
-
-    // ضربه به سمت راست صفحه (در RTL یعنی صفحه قبل)
-    if (dx > width / 2) {
-      _previousStory();
-    } else {
-      // ضربه به سمت چپ صفحه (صفحه بعد)
-      _nextStory();
-    }
+  void _cleanCurrentEngine() {
+    _imageTimer?.cancel();
+    _progressTimer?.cancel();
+    _videoController?.removeListener(() {});
+    _videoController?.dispose();
+    _videoController = null;
   }
 
   @override
   void dispose() {
-    _pageController.dispose();
-    _animController?.dispose();
+    _cleanCurrentEngine();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentItem = widget.category.items[_currentIndex];
-    final dateStr =
-        "${currentItem.createdAt.year}/${currentItem.createdAt.month}/${currentItem.createdAt.day}";
+    final item = widget.category.items[_currentIndex];
+    final String? imageUrl = item.imageUrl;
+    final String? videoUrl = item.videoUrl;
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
-        child: GestureDetector(
-          onTapUp: _onTapPage,
-          // 🔴 قابلیت خفن: اگر کاربر دستش را نگه داشت استوری استاپ (Pause) شود
-          onLongPress: () => _animController?.stop(),
-          // وقتی دستش را برداشت انیمیشن ادامه پیدا کند (Resume)
-          onLongPressUp: () => _animController?.forward(),
-          child: Stack(
-            children: [
-              // ۱. اسلایدر اصلی عکس‌ها
-              PageView.builder(
-                controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: widget.category.items.length,
-                itemBuilder: (context, index) {
-                  return Center(
-                    child: UniversalImage(
-                      fit: BoxFit.contain,
-                      imageUrl: AppConstants.getFullImageUrl(
-                        widget.category.items[index].imageUrl,
-                      ),
-                    ),
-                  );
+        child: Stack(
+          children: [
+            // ۱. لایه نمایش مدیا (تمام صفحه با دتکتور لمسی چپ و راست)
+            Positioned.fill(
+              child: GestureDetector(
+                onTapUp: (details) {
+                  final width = MediaQuery.of(context).size.width;
+                  // ضربه به سمت راست صفحه -> استوری بعدی | ضربه به سمت چپ صفحه -> استوری قبلی
+                  if (details.globalPosition.dx > width / 2) {
+                    _nextStory();
+                  } else {
+                    _previousStory();
+                  }
                 },
-              ),
-
-              // ۲. خط‌های انیمیشنی پرشونده بالای استوری (Progress Indicators)
-              Positioned(
-                top: 15,
-                left: 10,
-                right: 10,
-                child: Row(
-                  children: List.generate(widget.category.items.length, (
-                    index,
-                  ) {
-                    return Expanded(
-                      child: Container(
-                        height: 3,
-                        margin: const EdgeInsets.symmetric(horizontal: 2),
-                        child: index == _currentIndex
-                            ? AnimatedBuilder(
-                                animation: _animController!,
-                                builder: (context, child) {
-                                  return LinearProgressIndicator(
-                                    value: _animController!.value,
-                                    backgroundColor: Colors.white.withOpacity(
-                                      0.3,
-                                    ),
-                                    valueColor:
-                                        const AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
-                                        ),
-                                    minHeight: 3,
-                                  );
-                                },
+                child: Center(
+                  child: videoUrl != null && videoUrl.isNotEmpty
+                      ? (_videoController != null &&
+                                _videoController!.value.isInitialized
+                            ? AspectRatio(
+                                aspectRatio:
+                                    _videoController!.value.aspectRatio,
+                                child: VideoPlayer(_videoController!),
                               )
-                            : Container(
-                                decoration: BoxDecoration(
-                                  color: index < _currentIndex
-                                      ? Colors.white
-                                      : Colors.white.withOpacity(0.3),
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                      ),
-                    );
-                  }),
+                            : const SizedBox.shrink())
+                      : (imageUrl != null && imageUrl.isNotEmpty
+                            ? Image.network(
+                                AppConstants.getFullImageUrl(imageUrl),
+                                fit: BoxFit.contain,
+                                width: double.infinity,
+                              )
+                            : const SizedBox.shrink()),
                 ),
               ),
+            ),
 
-              // ۳. اطلاعات بالای هایلایت (کاور، عنوان و تاریخ)
-              Positioned(
-                top: 30,
-                left: 16,
-                right: 16,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 18,
-                          backgroundImage: NetworkImage(
-                            AppConstants.getFullImageUrl(
-                              widget.category.coverUrl,
+            // لودینگ چرخشی مخصوص بافرینگ ویدیوها
+            if (_isVideoLoading)
+              const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+
+            // ۲. لایه بالایی: نوارهای پیشرفت چندگانه اینستاگرامی (Progress Bars)
+            Positioned(
+              top: 12,
+              left: 12,
+              right: 12,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: List.generate(widget.category.items.length, (
+                      index,
+                    ) {
+                      double progress = 0.0;
+                      if (index < _currentIndex)
+                        progress = 1.0; // استوری‌های پر شده قبلی
+                      if (index == _currentIndex)
+                        progress = _animationProgress; // وضعیت پارت فعلی
+
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                          child: LinearProgressIndicator(
+                            value: progress,
+                            backgroundColor: Colors.white24,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Colors.white,
                             ),
+                            minHeight: 2.5,
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Text(
-                          widget.category.title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            fontFamily: 'Samim',
-                          ),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      dateStr,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                        fontFamily: 'Samim',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 12),
 
-              // دکمه خروج ضربدر
-              Positioned(
-                top: 70,
-                right: 16,
-                child: IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white, size: 28),
-                  onPressed: () => Navigator.pop(context),
-                ),
+                  // هدر شامل عنوان دسته‌بندی هایلایت و دکمه بستن پاپ‌آپ
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        widget.category.title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontFamily: 'Samim',
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          shadows: [
+                            Shadow(color: Colors.black87, blurRadius: 6),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          color: Colors.white,
+                          size: 26,
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

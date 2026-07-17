@@ -11,6 +11,8 @@ import '../../../gallery/presentation/pages/fullScreenPage.dart';
 import '../../../gallery/presentation/pages/gallery_page.dart';
 import '../../../home/providers/home_provider.dart';
 import '../../providers/reviews_provider.dart';
+import '../../../auth/providers/auth_provider.dart'; // 🔴 ایمپورت بررسی وضعیت لاگین
+import '../../providers/course_detail_provider.dart'; // 🔴 ایمپورت بررسی خریدهای کاربر
 
 class CourseReviewsPage extends ConsumerStatefulWidget {
   const CourseReviewsPage({super.key});
@@ -22,6 +24,7 @@ class CourseReviewsPage extends ConsumerStatefulWidget {
 class _CourseReviewsPageState extends ConsumerState<CourseReviewsPage> {
   int? _selectedCourseId;
   String? _selectedCourseTitle;
+  bool _selectedCourseIsFree = false; // 🔴 متغیر ذخیره وضعیت رایگان بودن دوره
 
   @override
   Widget build(BuildContext context) {
@@ -32,12 +35,11 @@ class _CourseReviewsPageState extends ConsumerState<CourseReviewsPage> {
     final coursesAsync = ref.watch(coursesProvider);
 
     return coursesAsync.when(
-      loading: () =>
-      const Center(
+      loading: () => const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
       ),
       error: (err, stack) =>
-      const Center(child: Text('خطا در بارگذاری لیست دوره‌ها')),
+          const Center(child: Text('خطا در بارگذاری لیست دوره‌ها')),
       data: (courses) {
         if (courses.isEmpty) {
           return const Center(child: Text('هیچ دوره‌ای یافت نشد.'));
@@ -84,12 +86,21 @@ class _CourseReviewsPageState extends ConsumerState<CourseReviewsPage> {
                   color: AppColors.primary,
                 ),
                 onTap: () {
+                  // 🔴 بررسی رایگان بودن دوره از روی دیتا
+                  final isFree =
+                      course['is_free'] == true ||
+                      course['price'] == 0 ||
+                      course['price'] == null;
+
                   ref
                       .read(courseReviewsProvider.notifier)
                       .fetchReviews(course['id']);
+
                   setState(() {
                     _selectedCourseId = course['id'];
                     _selectedCourseTitle = course['title'];
+                    _selectedCourseIsFree =
+                        isFree; // 🔴 ذخیره وضعیت رایگان بودن
                   });
                 },
               ),
@@ -102,6 +113,22 @@ class _CourseReviewsPageState extends ConsumerState<CourseReviewsPage> {
 
   Widget _buildDetailedReviews(int courseId, String courseTitle) {
     final reviewsState = ref.watch(courseReviewsProvider);
+
+    // 🔴 بررسی وضعیت لاگین و خریدهای کاربر
+    final authState = ref.watch(authProvider);
+    final isLoggedIn = authState.isAuthenticated;
+
+    bool isPurchased = false;
+    if (isLoggedIn) {
+      final myCoursesState = ref.watch(myCoursesProvider);
+      // بررسی می‌کنیم که آیا شناسه دوره در لیست دوره‌های خریداری شده کاربر وجود دارد یا خیر
+      isPurchased =
+          myCoursesState.valueOrNull?.any((c) => c['course_id'] == courseId) ??
+          false;
+    }
+
+    // 🔴 شرط دسترسی: دوره رایگان باشد یا کاربر آن را خریده باشد
+    final canReview = _selectedCourseIsFree || isPurchased;
 
     return Column(
       children: [
@@ -140,181 +167,242 @@ class _CourseReviewsPageState extends ConsumerState<CourseReviewsPage> {
         ),
         Expanded(
           child: reviewsState.when(
-            loading: () =>
-            const Center(
+            loading: () => const Center(
               child: CircularProgressIndicator(color: AppColors.primary),
             ),
             error: (err, stack) =>
-            const Center(child: Text('خطا در بارگذاری نظرات')),
+                const Center(child: Text('خطا در بارگذاری نظرات')),
             data: (reviews) {
               return Column(
                 children: [
                   Expanded(
                     child: reviews.isEmpty
                         ? const Center(
-                      child: Text(
-                        'هنوز هیچ نظری برای این دوره تایید نشده است.',
-                      ),
-                    )
+                            child: Text(
+                              'هنوز هیچ نظری برای این دوره تایید نشده است.',
+                            ),
+                          )
                         : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: reviews.length,
-                      itemBuilder: (context, index) {
-                        final review = reviews[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16)),
-                          elevation: 1, // سایه ملایم برای تمیزی لایوت
-                          child: Padding(
                             padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // هدر نظر: شامل نام هنرجو و تاریخ ثبت نظر
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment
-                                      .spaceBetween,
-                                  children: [
-                                    Text(
-                                      review.user.fullName,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14),
-                                    ),
-                                    Text(
-                                      "${review.createdAt.year}/${review
-                                          .createdAt.month}/${review.createdAt
-                                          .day}",
-                                      style: const TextStyle(color: Colors.grey,
-                                          fontSize: 11,
-                                          fontFamily: 'Samim'),
-                                    ),
-                                  ],
+                            itemCount: reviews.length,
+                            itemBuilder: (context, index) {
+                              final review = reviews[index];
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
-                                const Divider(height: 20, thickness: 0.5),
-
-                                // 🔴🔴 لایه جدید: قرار گرفتن متن و عکس به صورت افقی در کنار یکدیگر 🔴🔴
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  // تراز شدن المان‌ها از بالای کادر
-                                  children: [
-                                    // بخش متن نظر (به همراه Expanded تا کل فضای باقی‌مانده را پر کند)
-                                    Expanded(
-                                      child: Text(
-                                        review.content,
-                                        style: const TextStyle(height: 1.6,
-                                            fontSize: 13,
-                                            color: Colors.black87),
-                                        textAlign: TextAlign
-                                            .justify, // تراز شدن متن برای زیبایی بیشتر
-                                      ),
-                                    ),
-
-                                    // اگر نظر دارای عکس بود، آن را در سمت چپ متن نمایش بده
-                                    if (review.imageUrl != null) ...[
-                                      const SizedBox(width: 12),
-                                      // فاصله بین متن و عکس
-                                      GestureDetector(
-                                        onTap: () {
-                                          final fullImageUrl = AppConstants
-                                              .getFullImageUrl(
-                                              review.imageUrl!);
-                                          final reviewHeroTag = 'review_image_${review
-                                              .id}';
-
-                                          Navigator.push(
-                                            context,
-                                            PageRouteBuilder(
-                                              opaque: false,
-                                              pageBuilder: (context, _, __) =>
-                                                  FullScreenImageViewer(
-                                                    imageUrl: fullImageUrl,
-                                                    title: 'تصویر ارسالی ${review
-                                                        .user.fullName}',
-                                                    heroTag: reviewHeroTag,
-                                                  ),
-                                              transitionsBuilder: (context,
-                                                  anim, __, child) =>
-                                                  FadeTransition(opacity: anim,
-                                                      child: child),
+                                elevation: 1, // سایه ملایم برای تمیزی لایوت
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // هدر نظر: شامل نام هنرجو و تاریخ ثبت نظر
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            review.user.fullName,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
                                             ),
-                                          );
-                                        },
-                                        child: Container(
-                                          width: 85,
-                                          // ابعاد بندانگشتی بسیار بهینه و شیک
-                                          height: 85,
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(
-                                                12),
-                                            border: Border.all(
-                                                color: Colors.grey.shade200,
-                                                width: 1.5),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black.withOpacity(
-                                                    0.02),
-                                                blurRadius: 4,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                            ],
                                           ),
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(
-                                                10),
-                                            child: Hero(
-                                              tag: 'review_image_${review.id}',
-                                              child: Image.network(
-                                                AppConstants.getFullImageUrl(
-                                                    review.imageUrl!),
-                                                fit: BoxFit.cover,
-                                                errorBuilder: (context, error,
-                                                    stackTrace) =>
-                                                const Center(
-                                                  child: Icon(Icons
-                                                      .broken_image_outlined,
-                                                      color: Colors.grey,
-                                                      size: 20),
+                                          Text(
+                                            "${review.createdAt.year}/${review.createdAt.month}/${review.createdAt.day}",
+                                            style: const TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 11,
+                                              fontFamily: 'Samim',
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const Divider(height: 20, thickness: 0.5),
+
+                                      // 🔴🔴 لایه جدید: قرار گرفتن متن و عکس به صورت افقی در کنار یکدیگر 🔴🔴
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        // تراز شدن المان‌ها از بالای کادر
+                                        children: [
+                                          // بخش متن نظر (به همراه Expanded تا کل فضای باقی‌مانده را پر کند)
+                                          Expanded(
+                                            child: Text(
+                                              review.content,
+                                              style: const TextStyle(
+                                                height: 1.6,
+                                                fontSize: 13,
+                                                color: Colors.black87,
+                                              ),
+                                              textAlign: TextAlign
+                                                  .justify, // تراز شدن متن برای زیبایی بیشتر
+                                            ),
+                                          ),
+
+                                          // اگر نظر دارای عکس بود، آن را در سمت چپ متن نمایش بده
+                                          if (review.imageUrl != null) ...[
+                                            const SizedBox(width: 12),
+                                            // فاصله بین متن و عکس
+                                            GestureDetector(
+                                              onTap: () {
+                                                final fullImageUrl =
+                                                    AppConstants.getFullImageUrl(
+                                                      review.imageUrl!,
+                                                    );
+                                                final reviewHeroTag =
+                                                    'review_image_${review.id}';
+
+                                                Navigator.push(
+                                                  context,
+                                                  PageRouteBuilder(
+                                                    opaque: false,
+                                                    pageBuilder:
+                                                        (
+                                                          context,
+                                                          _,
+                                                          __,
+                                                        ) => FullScreenImageViewer(
+                                                          imageUrl:
+                                                              fullImageUrl,
+                                                          title:
+                                                              'تصویر ارسالی ${review.user.fullName}',
+                                                          heroTag:
+                                                              reviewHeroTag,
+                                                        ),
+                                                    transitionsBuilder:
+                                                        (
+                                                          context,
+                                                          anim,
+                                                          __,
+                                                          child,
+                                                        ) => FadeTransition(
+                                                          opacity: anim,
+                                                          child: child,
+                                                        ),
+                                                  ),
+                                                );
+                                              },
+                                              child: Container(
+                                                width: 85,
+                                                // ابعاد بندانگشتی بسیار بهینه و شیک
+                                                height: 85,
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                  border: Border.all(
+                                                    color: Colors.grey.shade200,
+                                                    width: 1.5,
+                                                  ),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: Colors.black
+                                                          .withOpacity(0.02),
+                                                      blurRadius: 4,
+                                                      offset: const Offset(
+                                                        0,
+                                                        2,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                  child: Hero(
+                                                    tag:
+                                                        'review_image_${review.id}',
+                                                    child: Image.network(
+                                                      AppConstants.getFullImageUrl(
+                                                        review.imageUrl!,
+                                                      ),
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder:
+                                                          (
+                                                            context,
+                                                            error,
+                                                            stackTrace,
+                                                          ) => const Center(
+                                                            child: Icon(
+                                                              Icons
+                                                                  .broken_image_outlined,
+                                                              color:
+                                                                  Colors.grey,
+                                                              size: 20,
+                                                            ),
+                                                          ),
+                                                    ),
+                                                  ),
                                                 ),
                                               ),
                                             ),
-                                          ),
-                                        ),
+                                          ],
+                                        ],
                                       ),
                                     ],
-                                  ],
+                                  ),
                                 ),
-                              ],
+                              );
+                            },
+                          ),
+                  ),
+
+                  // 🔴 جایگزینی دکمه پایین با منطق شرطی جدید
+                  if (canReview)
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accent,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.accent,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                          icon: const Icon(Icons.rate_review_outlined),
+                          label: const Text(
+                            'ثبت نظر و تجربه شما',
+                            style: TextStyle(fontWeight: FontWeight.bold),
                           ),
+                          onPressed: () {
+                            if (!isLoggedIn) {
+                              // اگر دوره رایگان بود ولی کاربر لاگین نبود، اول به او هشدار می‌دهیم
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'برای ثبت نظر ابتدا وارد حساب کاربری خود شوید.',
+                                    style: TextStyle(fontFamily: 'Samim'),
+                                  ),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+                              return;
+                            }
+                            _showAddReviewBottomSheet(context, courseId);
+                          },
                         ),
-                        icon: const Icon(Icons.rate_review_outlined),
-                        label: const Text(
-                          'ثبت نظر و تجربه شما',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    )
+                  else
+                    // 🔴 پیامی که برای دوره‌های پولی به کاربران عادی نمایش داده می‌شود
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text(
+                        'ثبت نظر تنها برای دانشجویان این دوره امکان‌پذیر است.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'Samim',
+                          color: Colors.grey,
+                          fontSize: 13,
                         ),
-                        onPressed: () =>
-                            _showAddReviewBottomSheet(context, courseId),
                       ),
                     ),
-                  ),
                 ],
               );
             },
@@ -364,10 +452,7 @@ class _CourseReviewsPageState extends ConsumerState<CourseReviewsPage> {
 
             return Padding(
               padding: EdgeInsets.only(
-                bottom: MediaQuery
-                    .of(context)
-                    .viewInsets
-                    .bottom,
+                bottom: MediaQuery.of(context).viewInsets.bottom,
                 left: 24,
                 right: 24,
                 top: 24,
@@ -386,7 +471,7 @@ class _CourseReviewsPageState extends ConsumerState<CourseReviewsPage> {
                     maxLines: 3,
                     decoration: InputDecoration(
                       hintText:
-                      'نظر شما پس از تایید مدیریت در اپلیکیشن نمایش داده می‌شود...',
+                          'نظر شما پس از تایید مدیریت در اپلیکیشن نمایش داده می‌شود...',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -411,13 +496,13 @@ class _CourseReviewsPageState extends ConsumerState<CourseReviewsPage> {
                             // 🔴 اگر وب بود از Image.memory استفاده کن، اگر اندروید بود از Image.file
                             child: kIsWeb
                                 ? Image.memory(
-                              webImageBytes!,
-                              fit: BoxFit.cover,
-                            )
+                                    webImageBytes!,
+                                    fit: BoxFit.cover,
+                                  )
                                 : Image.file(
-                              File(pickedImage!.path),
-                              fit: BoxFit.cover,
-                            ),
+                                    File(pickedImage!.path),
+                                    fit: BoxFit.cover,
+                                  ),
                           ),
                         ),
                         Positioned(
@@ -478,9 +563,7 @@ class _CourseReviewsPageState extends ConsumerState<CourseReviewsPage> {
                         foregroundColor: Colors.white,
                       ),
                       onPressed: () async {
-                        if (textController.text
-                            .trim()
-                            .isEmpty) return;
+                        if (textController.text.trim().isEmpty) return;
 
                         MultipartFile? multiPartFile;
                         if (pickedImage != null) {
@@ -502,10 +585,10 @@ class _CourseReviewsPageState extends ConsumerState<CourseReviewsPage> {
                         final success = await ref
                             .read(courseReviewsProvider.notifier)
                             .submitReview(
-                          courseId: courseId,
-                          content: textController.text.trim(),
-                          imageFile: multiPartFile,
-                        );
+                              courseId: courseId,
+                              content: textController.text.trim(),
+                              imageFile: multiPartFile,
+                            );
 
                         if (context.mounted) {
                           Navigator.pop(context);

@@ -574,7 +574,7 @@ class MainBottomNav extends ConsumerWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.only(top: 10, bottom: 10),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -585,85 +585,92 @@ class MainBottomNav extends ConsumerWidget {
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          BottomNavShortcut(
-            icon: Icons.home_filled,
-            label: 'خانه',
-            color: Colors.grey.shade400,
-            isActive: currentTab == 0,
-            onTap: () {
-              Navigator.of(context).popUntil((route) => route.isFirst);
-              ref.read(bottomNavIndexProvider.notifier).state = 0;
-            },
-          ),
-          BottomNavShortcut(
-            icon: Icons.chrome_reader_mode_outlined,
-            label: 'دوره ها',
-            color: Colors.grey.shade400,
-            isActive: currentTab == 1,
-            onTap: () {
-              Navigator.of(context).popUntil((route) => route.isFirst);
-              ref.read(courseFilterProvider.notifier).state = null; // ریست کامل فیلتر
-              ref.read(bottomNavIndexProvider.notifier).state = 1;
-            },
-          ),
-
-          BottomNavShortcut(
-            icon: Icons.rate_review_outlined,
-            label: 'نتایج هنرجویان',
-            color: Colors.grey.shade400,
-            isActive: currentTab == 6,
-            onTap: () {
-              Navigator.of(context).popUntil((route) => route.isFirst);
-              ref.read(bottomNavIndexProvider.notifier).state = 6;
-            },
-          ),
-
-          BottomNavShortcut(
-            icon: Icons.image_rounded,
-            label: 'گالری',
-            color: Colors.grey.shade400,
-            isActive: currentTab == 2,
-            onTap: () {
-              Navigator.of(context).popUntil((route) => route.isFirst);
-              ref.read(bottomNavIndexProvider.notifier).state = 2;
-            },
-          ),
-          Badge(
-            isLabelVisible: unreadCount > 0,
-            label: Text(
-              unreadCount.toString(),
-              style: const TextStyle(fontFamily: 'Samim', fontSize: 10),
-            ),
-            backgroundColor: Colors.redAccent,
-            offset: const Offset(-8, -4),
-            child: BottomNavShortcut(
-              icon: Icons.chat_bubble_outline_rounded,
-              label: 'پشتیبانی',
+      child: SafeArea(
+        top: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            BottomNavShortcut(
+              icon: Icons.home_filled,
+              label: 'خانه',
               color: Colors.grey.shade400,
-              isActive: currentTab == 3,
-              onTap: () => handleProtected(() {
+              isActive: currentTab == 0,
+              onTap: () {
                 Navigator.of(context).popUntil((route) => route.isFirst);
-                ref.read(bottomNavIndexProvider.notifier).state = 3;
-                ref.read(chatProvider.notifier).markAsRead();
-              }),
+                ref.read(courseFilterProvider.notifier).state = null;
+                ref.read(bottomNavIndexProvider.notifier).state = 0;
+              },
             ),
-          ),
-        ],
+            BottomNavShortcut(
+              icon: Icons.chrome_reader_mode_outlined,
+              label: 'دوره ها',
+              color: Colors.grey.shade400,
+              isActive: currentTab == 1,
+              onTap: () {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                ref.read(courseFilterProvider.notifier).state = null;
+                ref.read(bottomNavIndexProvider.notifier).state = 1;
+              },
+            ),
+            BottomNavShortcut(
+              icon: Icons.rate_review_outlined,
+              label: 'نتایج هنرجویان',
+              color: Colors.grey.shade400,
+              isActive: currentTab == 6,
+              onTap: () {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                ref.read(bottomNavIndexProvider.notifier).state = 6;
+              },
+            ),
+            BottomNavShortcut(
+              icon: Icons.image_rounded,
+              label: 'گالری',
+              color: Colors.grey.shade400,
+              isActive: currentTab == 2,
+              onTap: () {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                ref.read(bottomNavIndexProvider.notifier).state = 2;
+              },
+            ),
+            Badge(
+              isLabelVisible: unreadCount > 0,
+              label: Text(
+                unreadCount.toString(),
+                style: const TextStyle(fontFamily: 'Samim', fontSize: 10),
+              ),
+              backgroundColor: Colors.redAccent,
+              offset: const Offset(-8, -4),
+              child: BottomNavShortcut(
+                icon: Icons.chat_bubble_outline_rounded,
+                label: 'پشتیبانی',
+                color: Colors.grey.shade400,
+                isActive: currentTab == 3,
+                onTap: () => handleProtected(() {
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                  ref.read(bottomNavIndexProvider.notifier).state = 3;
+                  ref.read(chatProvider.notifier).markAsRead();
+                }),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 // ==========================================
-// ۴. اپ‌بار اصلی (Main AppBar)
+// ۴. اپ‌بار اصلی (Main AppBar) - با پشتیبانی از دکمه لیدینگ سفارشی
 // ==========================================
 class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final String title;
+  final Widget? leading; // 🔴 اضافه شدن فلگ لیدینگ دلخواه
 
-  const MainAppBar({super.key, required this.title});
+  const MainAppBar({
+    super.key,
+    required this.title,
+    this.leading, // 🔴 مقداردهی لیدینگ
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -684,16 +691,18 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       title: Row(
         children: [
-          Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(
-                Icons.menu_rounded,
-                color: AppColors.primary,
-                size: 26,
+          // 🔴 نمایش لیدینگ سفارشی (مثل دکمه بازگشت در گالری) یا منوی کشویی پیش‌فرض همبرگری
+          leading ??
+              Builder(
+                builder: (context) => IconButton(
+                  icon: const Icon(
+                    Icons.menu_rounded,
+                    color: AppColors.primary,
+                    size: 26,
+                  ),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
               ),
-              onPressed: () => Scaffold.of(context).openDrawer(),
-            ),
-          ),
           const Spacer(),
           Row(
             children: [

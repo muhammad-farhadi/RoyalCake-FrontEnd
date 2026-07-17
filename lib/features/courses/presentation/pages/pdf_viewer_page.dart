@@ -1,10 +1,16 @@
+import 'dart:async';
+import 'dart:math';
 import 'dart:typed_data';
+import 'dart:io' show Platform;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:printing/printing.dart'; // 🔴 پکیج جدید، لوکال و بدون نیاز به تنظیمات وب
+import 'package:printing/printing.dart';
+import 'package:screen_protector/screen_protector.dart'; // 🔴 ایمپورت محافظ صفحه نمایش
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/providers/auth_provider.dart'; // ایمپورت پرووایدر احراز هویت
 
 class PdfViewerPage extends ConsumerStatefulWidget {
   final int docId;
@@ -24,7 +30,20 @@ class _PdfViewerPageState extends ConsumerState<PdfViewerPage> {
   @override
   void initState() {
     super.initState();
+    _secureScreen(); // 🔴 فعال‌سازی لایه امنیتی ضد اسکرین‌شات
     _loadSecurePdf();
+  }
+
+  // 🔴 متد غیرفعال کردن اسکرین‌شات و فیلم‌برداری از صفحه در اندروید و iOS
+  Future<void> _secureScreen() async {
+    if (kIsWeb) return;
+    if (Platform.isAndroid || Platform.isIOS) {
+      try {
+        await ScreenProtector.preventScreenshotOn();
+      } catch (e) {
+        debugPrint('خطا در فعال‌سازی محافظ صفحه PDF: $e');
+      }
+    }
   }
 
   Future<void> _loadSecurePdf() async {
@@ -54,7 +73,23 @@ class _PdfViewerPageState extends ConsumerState<PdfViewerPage> {
   }
 
   @override
+  void dispose() {
+    // 🔴 آزاد کردن قفل اسکرین‌شات سیستم‌عامل هنگام خروج از صفحه جزوه
+    if (!kIsWeb) {
+      if (Platform.isAndroid || Platform.isIOS) {
+        try {
+          ScreenProtector.preventScreenshotOff();
+        } catch (_) {}
+      }
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // خواندن شماره موبایل هنرجو برای تزریق به لایه واترمارک
+    final userPhone = ref.watch(authProvider).phoneNumber ?? 'کاربر رویال کیک';
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
@@ -103,21 +138,105 @@ class _PdfViewerPageState extends ConsumerState<PdfViewerPage> {
               )
             : Padding(
                 padding: const EdgeInsets.all(8.0),
-                // 🔴 رندر کاملاً بومی، روان و امنِ بایت‌ها بدون دستکاری index.html
-                child: PdfPreview(
-                  build: (format) => _pdfBytes!,
-                  allowPrinting: false,
-                  // 🔒 غیرفعال کردن دکمه پرینت
-                  allowSharing: false,
-                  // 🔒 غیرفعال کردن دکمه دانلود و اشتراک‌گذاری بیرون برنامه
-                  canChangePageFormat: false,
-                  // قفل کردن سایز صفحه
-                  canChangeOrientation: false,
-                  // قفل کردن چرخش صفحه
-                  canDebug: false,
-                  actions: const [], // حذف هرگونه دکمه اضافی از تولبار
+                child: Stack(
+                  children: [
+                    // 🔴 قابلیت زوم هوشمند مهارشده فقط روی لایه خودِ PDF
+                    Positioned.fill(
+                      child: InteractiveViewer(
+                        minScale: 1.0,
+                        maxScale:
+                            4.5, // اجازه زوم دو انگشتی تا ۴.۵ برابر بزرگتر
+                        child: PdfPreview(
+                          build: (format) => _pdfBytes!,
+                          allowPrinting: false,
+                          allowSharing: false,
+                          canChangePageFormat: false,
+                          canChangeOrientation: false,
+                          canDebug: false,
+                          actions: const [],
+                        ),
+                      ),
+                    ),
+
+                    // 🔒 واترمارک چون بیرون از InteractiveViewer است، با زوم و پن کردن کاربر کاملاً ثابت و مهارشده باقی می‌ماند
+                    MovingPdfWatermark(userPhone: userPhone),
+                  ],
                 ),
               ),
+      ),
+    );
+  }
+}
+
+// ===================================================================
+// 🔴 ویجت اختصاصی واترمارک متحرک روی فایلهای PDF (بهینه‌شده برای صفحات روشن)
+// ===================================================================
+class MovingPdfWatermark extends StatefulWidget {
+  final String userPhone;
+
+  const MovingPdfWatermark({super.key, required this.userPhone});
+
+  @override
+  State<MovingPdfWatermark> createState() => _MovingPdfWatermarkState();
+}
+
+class _MovingPdfWatermarkState extends State<MovingPdfWatermark> {
+  final Random _random = Random();
+  Timer? _watermarkTimer;
+  Alignment _watermarkAlignment = Alignment.center;
+
+  @override
+  void initState() {
+    super.initState();
+    _startWatermarkMovement();
+  }
+
+  void _startWatermarkMovement() {
+    _watermarkTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) {
+        setState(() {
+          // تولید محدودتر محدوده حرکتی برای جلوگیری از بیرون زدن شماره از کادر ابزار PDF
+          final x = (_random.nextDouble() * 1.6) - 0.8;
+          final y = (_random.nextDouble() * 1.6) - 0.8;
+          _watermarkAlignment = Alignment(x, y);
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _watermarkTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedAlign(
+        alignment: _watermarkAlignment,
+        duration: const Duration(seconds: 5),
+        curve: Curves.easeInOut,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            widget.userPhone,
+            style: TextStyle(
+              // 🔴 بهینه‌سازی رنگ برای پس‌زمینه سفید جزوات (مشکی نیمه شفاف با سایه ملایم سفید)
+              color: Colors.black.withOpacity(0.18),
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              fontFamily: 'Samim',
+              shadows: [
+                Shadow(
+                  offset: const Offset(1, 1),
+                  blurRadius: 2.0,
+                  color: Colors.white.withOpacity(0.5),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -36,6 +36,18 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="royalcake" android:host="close" />
             </intent-filter>
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <!-- 🔴 دامین PWA یا سایت خود را اینجا قرار دهید -->
+                <data android:scheme="https" />
+                <data android:scheme="http" />
+                <data android:host="pwa.royalcakes.ir" />
+            </intent-filter>
+
         </activity>
 
         <meta-data

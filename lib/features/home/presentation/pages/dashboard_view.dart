@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart'; // برای kIsWeb
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -9,6 +9,7 @@ import '../../../courses/presentation/pages/course_detail_page.dart';
 import '../../../gallery/presentation/pages/fullScreenPage.dart';
 import '../../../gallery/presentation/pages/gallery_page.dart';
 import '../../../gallery/presentation/pages/universal_image.dart';
+import '../../providers/banners_provider.dart';
 import '../widgets/highlights_bar.dart';
 import '../widgets/home_widgets.dart';
 import '../../providers/home_provider.dart';
@@ -87,50 +88,68 @@ class DashboardView extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 🔴 دایره آموزش رایگان همراه با قابلیت کلیک انتقال و فیلتر
+                        // 🔴 دایره آموزش رایگان -> اتصال به آیدی 13
                         _buildIntroCourseItem(
                           imageUrl:
                               '/static/img/20230829_150959_E3E8C2F7-32A7-47DB-B707-8A377F5B7F2D.webp',
                           title: 'آموزش رایگان',
                           ref: ref,
                           onTap: () {
-                            ref.read(courseFilterProvider.notifier).state =
-                                true; // اعمال فیلتر رایگان
-                            ref.read(bottomNavIndexProvider.notifier).state =
-                                1; // پرش به تب دوره‌ها
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const CourseDetailPage(courseId: 13),
+                              ),
+                            );
                           },
                         ),
+                        // 🔴 دایره کیک و کوکی -> اتصال به آیدی 10
                         _buildIntroCourseItem(
                           imageUrl:
                               '/static/img/20230829_151140_89E97E06-CE04-4BBA-9BFB-9E110BC9FEC8.webp',
                           title: 'دوره کیک و کوکی',
                           ref: ref,
                           onTap: () {
-                            ref.read(courseFilterProvider.notifier).state =
-                                null;
-                            ref.read(bottomNavIndexProvider.notifier).state = 1;
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const CourseDetailPage(courseId: 10),
+                              ),
+                            );
                           },
                         ),
+                        // 🔴 دایره چیزکیک -> اتصال به آیدی 11
                         _buildIntroCourseItem(
                           imageUrl:
                               '/static/img/20230829_153101_E074A852-5758-4302-B7E0-203B36B34DCD.webp',
                           title: 'دوره چیز کیک',
                           ref: ref,
                           onTap: () {
-                            ref.read(courseFilterProvider.notifier).state =
-                                null;
-                            ref.read(bottomNavIndexProvider.notifier).state = 1;
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const CourseDetailPage(courseId: 11),
+                              ),
+                            );
                           },
                         ),
+                        // 🔴 دایره شیرینی نوروز -> اتصال به آیدی 9
                         _buildIntroCourseItem(
                           imageUrl:
                               '/static/img/20230829_095147_72A432F7-3E40-48F7-A618-4FFCBC50095B.webp',
                           title: 'دوره شیرینی نوروز',
                           ref: ref,
                           onTap: () {
-                            ref.read(courseFilterProvider.notifier).state =
-                                null;
-                            ref.read(bottomNavIndexProvider.notifier).state = 1;
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const CourseDetailPage(courseId: 9),
+                              ),
+                            );
                           },
                         ),
                       ],
@@ -171,28 +190,13 @@ class DashboardView extends ConsumerWidget {
             ),
           ),
 
-          // 🔴 ۱. ردیف دوره‌های تخصصی (پولی) روی داشبورد
+          // ردیف دوره‌های تخصصی (پولی) روی داشبورد
           _buildCourseSection(
             title: 'آخرین دوره‌های تخصصی',
             coursesState: ref.watch(homePaidCoursesProvider),
             context: context,
             onShowAll: () {
-              ref.read(courseFilterProvider.notifier).state =
-                  false; // فیلتر دوره‌های غیر رایگان
-              ref.read(bottomNavIndexProvider.notifier).state = 1;
-            },
-          ),
-
-          const SizedBox(height: 16),
-
-          // 🔴 ۲. ردیف آموزش‌های رایگان روی داشبورد
-          _buildCourseSection(
-            title: 'آموزش‌های رایگان',
-            coursesState: ref.watch(homeFreeCoursesProvider),
-            context: context,
-            onShowAll: () {
-              ref.read(courseFilterProvider.notifier).state =
-                  true; // فیلتر دوره‌های رایگان
+              ref.read(courseFilterProvider.notifier).state = false;
               ref.read(bottomNavIndexProvider.notifier).state = 1;
             },
           ),
@@ -374,7 +378,6 @@ class DashboardView extends ConsumerWidget {
     );
   }
 
-  // 🔴 متد کمکی و هوشمند برای ساخت ردیف‌های تفکیک‌شده دوره جهت دوری از تکرار کد بالا
   Widget _buildCourseSection({
     required String title,
     required AsyncValue<List<dynamic>> coursesState,
@@ -513,12 +516,11 @@ class DashboardView extends ConsumerWidget {
     );
   }
 
-  // متد اصلاح‌شده دایره‌ها همراه با پذیرش onTap
   Widget _buildIntroCourseItem({
     required String imageUrl,
     required String title,
     required WidgetRef ref,
-    VoidCallback? onTap, // 🔴 اضافه شدن فلگ کلیک
+    VoidCallback? onTap,
   }) {
     final fullUrl = AppConstants.getFullImageUrl(imageUrl);
 
@@ -531,7 +533,6 @@ class DashboardView extends ConsumerWidget {
         return Padding(
           padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           child: InkWell(
-            // 🔴 تبدیل به InkWell جهت هندل کردن کلیک
             onTap: onTap,
             borderRadius: BorderRadius.circular(100),
             child: Column(
@@ -586,45 +587,33 @@ class DashboardView extends ConsumerWidget {
   }
 }
 
-class BannerSlider extends StatefulWidget {
+class BannerSlider extends ConsumerStatefulWidget {
   const BannerSlider({super.key});
 
   @override
-  State<BannerSlider> createState() => _BannerSliderState();
+  ConsumerState<BannerSlider> createState() => _BannerSliderState();
 }
 
-class _BannerSliderState extends State<BannerSlider> {
+class _BannerSliderState extends ConsumerState<BannerSlider> {
   final PageController _bannerController = PageController(initialPage: 0);
   int _currentBannerPage = 0;
   Timer? _bannerTimer;
 
-  final List<Map<String, String>> _banners = [
-    {
-      'title': 'دوره جامع چیزکیک',
-      'subtitle': 'آموزش تخصصی منوی کافی‌شاپ',
-      'image': 'assets/images/banner3.jpg',
-    },
-    {
-      'title': 'دوره کیک و کوکی',
-      'subtitle': 'آموزش تخصصی منوی کافی شاپ',
-      'image': 'assets/images/banner5.png',
-    },
-    {
-      'title': 'آموزش شیرینی‌های مدرن',
-      'subtitle': 'ویژه عید و کسب درآمد خانگی',
-      'image': 'assets/images/banner6.png',
-    },
-  ];
-
   @override
   void initState() {
     super.initState();
-    _bannerTimer = Timer.periodic(const Duration(seconds: 4), (Timer timer) {
-      if (_currentBannerPage < _banners.length - 1) {
+    // راه‌اندازی تایمر چرخشی هوشمند و هماهنگ با دیتای پویای سرور
+    _bannerTimer = Timer.periodic(const Duration(seconds: 5), (Timer timer) {
+      // خواندن تعداد بنرهای لود شده در لحظه بدون خراب کردن initState
+      final bannersValue = ref.read(bannersProvider).valueOrNull;
+      if (bannersValue == null || bannersValue.isEmpty) return;
+
+      if (_currentBannerPage < bannersValue.length - 1) {
         _currentBannerPage++;
       } else {
         _currentBannerPage = 0;
       }
+
       if (_bannerController.hasClients) {
         _bannerController.animateToPage(
           _currentBannerPage,
@@ -644,122 +633,215 @@ class _BannerSliderState extends State<BannerSlider> {
 
   @override
   Widget build(BuildContext context) {
+    // گوش به زنگ بودن برای دریافت بنرهای پویا از سرور
+    final bannersState = ref.watch(bannersProvider);
+
     return SizedBox(
       height: 260,
-      child: Column(
-        children: [
-          Expanded(
-            child: PageView.builder(
-              controller: _bannerController,
-              itemCount: _banners.length,
-              onPageChanged: (index) =>
-                  setState(() => _currentBannerPage = index),
-              itemBuilder: (context, index) {
-                return Container(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
+      child: bannersState.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        error: (error, stack) => const Center(
+          child: Text(
+            'خطا در بارگذاری بنرها',
+            style: TextStyle(
+              fontFamily: 'Samim',
+              fontSize: 13,
+              color: Colors.black45,
+            ),
+          ),
+        ),
+        data: (banners) {
+          if (banners.isEmpty) return const SizedBox.shrink();
+
+          return Column(
+            children: [
+              Expanded(
+                child: PageView.builder(
+                  controller: _bannerController,
+                  itemCount: banners.length,
+                  onPageChanged: (index) =>
+                      setState(() => _currentBannerPage = index),
+                  itemBuilder: (context, index) {
+                    final banner = banners[index];
+                    // تبدیل آدرس نسبی سرور به آدرس کامل و مطلق وب‌سایت
+                    final fullBannerImageUrl = AppConstants.getFullImageUrl(
+                      banner.imageUrl,
+                    );
+
+                    return Container(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
                       ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: Stack(
-                      children: [
-                        Image.asset(
-                          _banners[index]['image']!,
-                          width: double.infinity,
-                          height: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.black.withValues(alpha: 0.65),
-                                Colors.black.withValues(alpha: 0.3),
-                                Colors.transparent,
-                              ],
-                              begin: Alignment.centerRight,
-                              end: Alignment.centerLeft,
-                            ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
                           ),
-                        ),
-                        Positioned(
-                          right: 24,
-                          bottom: 24,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: InkWell(
+                          // انتقال مستقیم هنرجو به صفحه جزئیات دوره لینک شده به بنر
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    CourseDetailPage(courseId: banner.courseId),
+                              ),
+                            );
+                          },
+                          child: Stack(
                             children: [
-                              Text(
-                                _banners[index]['title']!,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: 'Samim',
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black54,
-                                      offset: Offset(0, 2),
-                                      blurRadius: 4,
+                              // 🔴 لود لایو تصویر از شبکه به جای اسِت‌های محلی قدیمی
+                              Image.network(
+                                fullBannerImageUrl,
+                                width: double.infinity,
+                                height: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Container(
+                                      color: Colors.grey.shade200,
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.broken_image_outlined,
+                                          color: Colors.black26,
+                                        ),
+                                      ),
+                                    ),
+                              ),
+                              // گرادینت تیره برای خوانایی بهتر متن‌های روی بنر
+                              Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.black.withValues(alpha: 0.65),
+                                      Colors.black.withValues(alpha: 0.3),
+                                      Colors.transparent,
+                                    ],
+                                    begin: Alignment.centerRight,
+                                    end: Alignment.centerLeft,
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                right: 24,
+                                bottom: 24,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      banner.title,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'Samim',
+                                        shadows: [
+                                          Shadow(
+                                            color: Colors.black54,
+                                            offset: Offset(0, 2),
+                                            blurRadius: 4,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      banner.subtitle,
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 12,
+                                        fontFamily: 'Samim',
+                                        shadows: [
+                                          Shadow(
+                                            color: Colors.black45,
+                                            offset: Offset(0, 1),
+                                            blurRadius: 3,
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                _banners[index]['subtitle']!,
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 13,
-                                  fontFamily: 'Samim',
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black45,
-                                      offset: Offset(0, 1),
-                                      blurRadius: 3,
+
+                              // دکمه مینی‌مال شیشه‌ای ورود به دوره
+                              Positioned(
+                                left: 24,
+                                bottom: 24,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.25),
+                                      width: 1,
                                     ),
-                                  ],
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'ورود به دوره',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontFamily: 'Samim',
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Icon(
+                                        Icons.arrow_back_ios_new_rounded,
+                                        color: Colors.white,
+                                        size: 10,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(
-              _banners.length,
-              (index) => AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                height: 5,
-                width: _currentBannerPage == index ? 16 : 5,
-                decoration: BoxDecoration(
-                  color: _currentBannerPage == index
-                      ? AppColors.primary
-                      : Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(10),
+                      ),
+                    );
+                  },
                 ),
               ),
-            ),
-          ),
-        ],
+              // نقطه‌های نشانگر پایین اسلایدر (ایندیکیتورها) متناسب با تعداد دیتای سرور
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  banners.length,
+                  (index) => AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    height: 5,
+                    width: _currentBannerPage == index ? 16 : 5,
+                    decoration: BoxDecoration(
+                      color: _currentBannerPage == index
+                          ? AppColors.primary
+                          : Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
