@@ -132,6 +132,12 @@ class _CourseDetailPageState extends ConsumerState<CourseDetailPage> {
         isPurchased = courses.any((c) => c['course_id'] == widget.courseId);
       });
     }
+
+    // 🔴 بررسی رایگان بودن دوره خارج از ویجت بیلد تا دکمه پشتیبانی را برای دوره‌های رایگان مخفی کنیم
+    bool isFreeCourseForFab = false;
+    courseState.whenData((course) {
+      isFreeCourseForFab = course['price'] == 0 || course['price'] == null;
+    });
     // ----------------------------------------
 
     return Directionality(
@@ -142,8 +148,8 @@ class _CourseDetailPageState extends ConsumerState<CourseDetailPage> {
         drawer: const AppDrawer(),
         bottomNavigationBar: const MainBottomNav(),
 
-        // دکمه شناور منبسط‌شونده ۳ کاناله (تلگرام + بله + تماس مستقیم)
-        floatingActionButton: isPurchased
+        // 🔴 دکمه شناور تنها در صورتی نمایش داده می‌شود که شخص دوره را خریده باشد و دوره رایگان نباشد
+        floatingActionButton: (isPurchased && !isFreeCourseForFab)
             ? ExpandableSupportFab(
                 onTelegramTap: _launchTelegram,
                 onBaleTap: _launchBale,
@@ -796,7 +802,7 @@ class _CourseDetailPageState extends ConsumerState<CourseDetailPage> {
                         ],
                       ),
 
-                      // 2. دکمه بازگشت ثابت و شناور (کد جدید)
+                      // 2. دکمه بازگشت ثابت و شناور
                       Positioned(
                         top: 16,
                         right: 16,
@@ -1366,7 +1372,7 @@ class _LessonItemRowState extends State<LessonItemRow> {
             ),
           ),
 
-          // 🔴 بخش متحرک کشویی کپشن (تنها در صورت فشرده شدن فلش و وجود دیتا لود می‌شود)
+          // 🔴 بخش متحرک کشویی کپشن
           if (hasCaption)
             AnimatedCrossFade(
               firstChild: const SizedBox.shrink(),
@@ -1386,11 +1392,13 @@ class _LessonItemRowState extends State<LessonItemRow> {
                   ),
                   child: Text(
                     captionText,
+                    // 🔴 تغییرات ظاهری: ضخامت بیشتر، سایز بزرگ‌تر، و رنگ تیره‌تر برای خوانایی بهتر
                     style: const TextStyle(
                       fontFamily: 'Samim',
-                      fontSize: 12,
-                      color: Colors.black54,
-                      height: 1.5,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                      height: 1.6,
                     ),
                   ),
                 ),

@@ -25,7 +25,7 @@ class HighlightsBar extends ConsumerWidget {
     }
 
     return SizedBox(
-      height: 110,
+      height: 90,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -71,15 +71,15 @@ class HighlightsBar extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    category.title,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xff2c3e50),
-                    ),
-                  ),
+                  // const SizedBox(height: 6),
+                  // Text(
+                  //   category.title,
+                  //   style: const TextStyle(
+                  //     fontSize: 12,
+                  //     fontWeight: FontWeight.w500,
+                  //     color: Color(0xff2c3e50),
+                  //   ),
+                  // ),
                 ],
               ),
             ),
