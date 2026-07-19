@@ -29,6 +29,11 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
+    // 🔴 جادوی حل باگ: اگر در درخواست گفته شده بود که اینترسپتور دخالت نکند (مثل لاگین)، ارور را مستقیم پاس بده
+    if (err.requestOptions.extra['skipAuthInterceptor'] == true) {
+      return handler.next(err);
+    }
+
     if (err.response?.statusCode == 401) {
       // 1️⃣ اگر فرآیند رفرش توکن از قبل توسط یک درخواست دیگر شروع شده، بقیه همینجا منتظر می‌مانند
       if (_isRefreshing) {
@@ -138,12 +143,13 @@ class AuthInterceptor extends Interceptor {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
+                fontFamily: 'Samim',
               ),
             ),
             content: const Text(
               errorMessage,
               textAlign: TextAlign.right,
-              style: TextStyle(fontSize: 15),
+              style: TextStyle(fontSize: 15, fontFamily: 'Samim'),
             ),
             actions: [
               TextButton(
@@ -160,6 +166,7 @@ class AuthInterceptor extends Interceptor {
                   style: TextStyle(
                     color: Color(0xff0c4d3b),
                     fontWeight: FontWeight.bold,
+                    fontFamily: 'Samim',
                   ),
                 ),
               ),

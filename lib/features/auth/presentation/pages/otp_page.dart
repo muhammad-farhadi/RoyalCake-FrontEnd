@@ -69,16 +69,12 @@ class _OtpPageState extends ConsumerState<OtpPage> {
     if (!mounted) return;
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('کد تایید مجدداً ارسال شد.')),
+        const SnackBar(
+          content: Text('کد تایید مجدداً ارسال شد.'),
+          backgroundColor: Colors.green,
+        ),
       );
       _startTimer();
-    } else {
-      final error = ref.read(authProvider).error;
-      if (error != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error)));
-      }
     }
   }
 
@@ -94,13 +90,6 @@ class _OtpPageState extends ConsumerState<OtpPage> {
         MaterialPageRoute(builder: (context) => const HomePage()),
         (route) => false,
       );
-    } else if (mounted) {
-      final error = ref.read(authProvider).error;
-      if (error != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error)));
-      }
     }
   }
 
@@ -109,158 +98,208 @@ class _OtpPageState extends ConsumerState<OtpPage> {
     final authState = ref.watch(authProvider);
     final theme = Theme.of(context);
 
-    return Scaffold(
-      backgroundColor: const Color(0xfffcf8f8), // رنگ پس‌زمینه لایت اپ
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
-          color: const Color(0xff0c4d3b), // هماهنگی رنگ دکمه بازگشت
-          onPressed: () => Navigator.pop(context),
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: const Color(0xfffcf8f8),
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios),
+            color: const Color(0xff0c4d3b),
+            onPressed: () => Navigator.pop(context),
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            // وسط‌چین شدن عمودی تمامی المان‌ها
-            children: [
-              const SizedBox(height: 16),
-              Center(child: Image.asset('assets/images/logo.png', height: 120)),
-              const SizedBox(height: 40),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 16),
+                Center(
+                  child: Image.asset('assets/images/logo.png', height: 110),
+                ),
+                const SizedBox(height: 40),
 
-              Center(
-                child: Text(
-                  'کد تایید را وارد کنید',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.headlineLarge?.copyWith(
-                    color: const Color(0xff0c4d3b), // رنگ سبز تیره تم
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Center(
-                child: Text(
-                  'کد پیامک شده به شماره ${widget.phoneNumber} را وارد نمایید',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xff2c3e50), // رنگ متن تیره تم
-                  ),
-                ),
-              ),
-              const SizedBox(height: 40),
-
-              // فیلد اختصاصی وارد کردن کد OTP
-              TextField(
-                controller: _otpController,
-                keyboardType: TextInputType.number,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 28,
-                  letterSpacing: 16.0,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xff0c4d3b),
-                ),
-                maxLength: 6,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  counterText: "",
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: Colors.grey.shade200),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(
-                      color: Color(0xff0c4d3b), // بوردر سبز در فوکوس
-                      width: 2,
+                Center(
+                  child: Text(
+                    'کد تایید را وارد کنید',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.headlineLarge?.copyWith(
+                      color: const Color(0xff0c4d3b),
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Samim',
                     ),
                   ),
                 ),
-                onChanged: (value) {
-                  if (value.length == 6) _verifyCode();
-                },
-              ),
-              const SizedBox(height: 32),
+                const SizedBox(height: 8),
+                Center(
+                  child: Text(
+                    'کد ۶ رقمی پیامک شده به شماره ${widget.phoneNumber} را به انگلیسی وارد کنید',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xff2c3e50),
+                      fontFamily: 'Samim',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
 
-              // بخش تایمر و ارسال مجدد کد
-              Center(
-                child: _canResend
-                    ? TextButton.icon(
-                        onPressed: authState.isLoading ? null : _resendCode,
-                        icon: const Icon(
-                          Icons.refresh,
-                          color: Color(0xfffc94a1), // رنگ صورتی تم (Accent)
-                          size: 20,
+                // ===================================================================
+                // 🚨 بنر خطای قرمز و تابلوی صفحه کد تأیید
+                // ===================================================================
+                if (authState.error != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.red.shade400, width: 2),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.gpp_bad_rounded,
+                          color: Colors.red.shade800,
+                          size: 26,
                         ),
-                        label: const Text(
-                          'ارسال مجدد کد تایید',
-                          style: TextStyle(
-                            color: Color(0xfffc94a1), // رنگ صورتی تم (Accent)
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.access_time,
-                            color: Colors.grey.shade400,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'مانده تا ارسال مجدد: ${_formatTime(_secondsRemaining)}',
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            authState.error!,
                             style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 14,
+                              fontFamily: 'Samim',
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red.shade900,
                             ),
                           ),
-                        ],
-                      ),
-              ),
-              const SizedBox(height: 32),
-
-              // دکمه اصلی تایید و ورود
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: authState.isLoading ? null : _verifyCode,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xff0c4d3b), // رنگ سبز اصلی
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                        ),
+                      ],
                     ),
-                    elevation: 1,
                   ),
-                  child: authState.isLoading
-                      ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
+                  const SizedBox(height: 24),
+                ],
+
+                TextField(
+                  controller: _otpController,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    letterSpacing: 16.0,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xff0c4d3b),
+                  ),
+                  maxLength: 6,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white,
+                    counterText: "",
+                    helperText:
+                        '⚠️ لطفا تا زمان دریافت پیامک شکیبا باشید و کد را کاملاً صحیح ثبت کنید.',
+                    helperStyle: const TextStyle(
+                      fontFamily: 'Samim',
+                      fontSize: 11,
+                      color: Colors.black54,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(
+                        color: Color(0xff0c4d3b),
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                  onChanged: (value) {
+                    if (value.length == 6) _verifyCode();
+                  },
+                ),
+                const SizedBox(height: 32),
+
+                Center(
+                  child: _canResend
+                      ? TextButton.icon(
+                          onPressed: authState.isLoading ? null : _resendCode,
+                          icon: const Icon(
+                            Icons.refresh,
+                            color: Color(0xfffc94a1),
+                            size: 20,
+                          ),
+                          label: const Text(
+                            'ارسال مجدد کد تایید پیامکی',
+                            style: TextStyle(
+                              color: Color(0xfffc94a1),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              fontFamily: 'Samim',
+                            ),
                           ),
                         )
-                      : const Text(
-                          'تایید و ورود',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.access_time,
+                              color: Colors.grey.shade400,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'زمان مانده تا امکان ارسال مجدد: ${_formatTime(_secondsRemaining)}',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 13,
+                                fontFamily: 'Samim',
+                              ),
+                            ),
+                          ],
                         ),
                 ),
-              ),
-              const SizedBox(height: 24),
-            ],
+                const SizedBox(height: 32),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: authState.isLoading ? null : _verifyCode,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xff0c4d3b),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 1,
+                    ),
+                    child: authState.isLoading
+                        ? const SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'تایید کد و ورود',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Samim',
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
         ),
       ),

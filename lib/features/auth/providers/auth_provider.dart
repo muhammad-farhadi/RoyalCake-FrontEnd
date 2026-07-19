@@ -12,7 +12,6 @@ class AuthState {
   final bool isAuthenticated; // آیا کاربر لاگین شده است؟
   final Map<String, dynamic>? userInfo; // اطلاعات کامل کاربر
 
-  // ---> این خط را اضافه کنید <---
   // این گتر به صورت خودکار شماره را از داخل userInfo می‌خواند
   String? get phoneNumber => userInfo?['phone_number'];
 
@@ -27,19 +26,21 @@ class AuthState {
   AuthState copyWith({
     bool? isLoading,
     String? error,
+    bool clearError = false, // 🔴 اضافه شد: برای پاک کردن امن ارورها
     bool? isSuccess,
     bool? isAuthenticated,
     Map<String, dynamic>? userInfo,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
-      error: error,
+      error: clearError ? null : (error ?? this.error),
       isSuccess: isSuccess ?? this.isSuccess,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       userInfo: userInfo ?? this.userInfo,
     );
   }
 }
+
 class AuthNotifier extends StateNotifier<AuthState> {
   final Ref ref;
 
@@ -48,11 +49,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     checkAuthStatus();
   }
 
+  // 🔴 متد جدید برای پاکسازی ارور موقع جابجایی بین صفحات
+  void clearError() {
+    state = state.copyWith(clearError: true);
+  }
+
   // === متدهای جدید برای مدیریت نشست (Session) ===
 
   // چک کردن توکن در زمان اجرای اولیه اپلیکیشن
   Future<void> checkAuthStatus() async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, clearError: true);
     final accessToken = await TokenStorage.getAccessToken();
 
     if (accessToken != null && accessToken.isNotEmpty) {
@@ -91,11 +97,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = AuthState(isAuthenticated: false, userInfo: null, isSuccess: false);
   }
 
-  // === متدهای قبلی شما (بدون تغییر در منطق کاری) ===
+  // === متدهای شما ===
 
   // ۱. ورود با شماره موبایل و رمز عبور
   Future<LoginStatus> login(String phone, String password) async {
-    state = state.copyWith(isLoading: true, error: null, isSuccess: false);
+    state = state.copyWith(isLoading: true, clearError: true, isSuccess: false);
     try {
       final dio = ref.read(dioProvider);
       final response = await dio.post(
@@ -108,7 +114,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
           'client_id': 'string',
           'client_secret': 'string',
         },
-        options: Options(contentType: Headers.formUrlEncodedContentType),
+        options: Options(
+          contentType: Headers.formUrlEncodedContentType,
+          // 🔴 به اینترسپتور می‌گیم اینجا دخالت نکن!
+          extra: {'skipAuthInterceptor': true},
+        ),
       );
 
       // ذخیره توکن‌ها پس از لاگین موفق
@@ -132,32 +142,49 @@ class AuthNotifier extends StateNotifier<AuthState> {
         state = state.copyWith(isLoading: false);
         return LoginStatus.unverified;
       }
-      state = state.copyWith(
-        isLoading: false,
-        error: e.response?.data['detail']?.toString() ?? 'خطا در ورود',
-      );
+
+      // 🔴 ترجمه خطاهای لاگین به زبان ساده و کوبنده
+      String extremeError = 'خطا در ورود';
+      if (e.response?.statusCode == 401) {
+        extremeError =
+            '❌ کلمه عبور (رمز) اشتباه است! لطفاً آن را پاک کرده و دوباره با دقت وارد کنید.';
+      } else if (e.response?.statusCode == 404 ||
+          (e.response?.data['detail']?.toString().contains('یافت نشد') ==
+              true)) {
+        extremeError =
+            '⚠️ حساب کاربری با این شماره یافت نشد! اگر تا به حال ثبت‌نام نکرده‌اید، لطفاً «ایجاد حساب کاربری» را لمس کنید.';
+      } else {
+        extremeError =
+            e.response?.data['detail']?.toString() ?? 'خطا در ارتباط با سرور';
+      }
+
+      state = state.copyWith(isLoading: false, error: extremeError);
       return LoginStatus.error;
     }
   }
 
   Future<bool> resendOtp(String phone) async {
-    state = state.copyWith(isLoading: true, error: null, isSuccess: false);
+    state = state.copyWith(isLoading: true, clearError: true, isSuccess: false);
     try {
       final dio = ref.read(dioProvider);
-      await dio.post('/users/resend-otp', data: {'phone_number': phone});
+      await dio.post(
+        '/users/resend-otp',
+        data: {'phone_number': phone},
+        options: Options(extra: {'skipAuthInterceptor': true}),
+      );
 
       state = state.copyWith(isLoading: false, isSuccess: true);
       return true;
     } on DioException catch (e) {
       final errorMsg = e.response?.data['detail'] ?? 'خطا در ارسال مجدد کد.';
-      state = state.copyWith(isLoading: false, error: errorMsg.toString());
+      state = state.copyWith(isLoading: false, error: '❌ $errorMsg');
       return false;
     }
   }
 
   // ۲. ثبت‌نام و درخواست OTP
   Future<bool> register(String fullName, String phone, String password) async {
-    state = state.copyWith(isLoading: true, error: null, isSuccess: false);
+    state = state.copyWith(isLoading: true, clearError: true, isSuccess: false);
     try {
       final dio = ref.read(dioProvider);
 
@@ -168,6 +195,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           'phone_number': phone,
           'password': password,
         },
+        options: Options(extra: {'skipAuthInterceptor': true}),
       );
 
       state = state.copyWith(isLoading: false, isSuccess: true);
@@ -176,7 +204,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final errorMsg =
           e.response?.data['detail'] ??
           'خطا در ثبت‌نام. شاید این شماره قبلاً ثبت شده باشد.';
-      state = state.copyWith(isLoading: false, error: errorMsg);
+      state = state.copyWith(isLoading: false, error: '❌ $errorMsg');
       return false;
     }
   }
@@ -187,13 +215,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String code,
     String password,
   ) async {
-    state = state.copyWith(isLoading: true, error: null, isSuccess: false);
+    state = state.copyWith(isLoading: true, clearError: true, isSuccess: false);
     try {
       final dio = ref.read(dioProvider);
 
       await dio.post(
         '/users/verify-otp',
         data: {'phone_number': phone, 'otp_code': code},
+        options: Options(extra: {'skipAuthInterceptor': true}),
       );
 
       final loginResult = await login(phone, password);
@@ -206,25 +235,31 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } on DioException catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: e.response?.data['detail']?.toString() ?? 'کد نامعتبر است.',
+        error:
+            '❌ ' +
+            (e.response?.data['detail']?.toString() ?? 'کد نامعتبر است.'),
       );
       return false;
     }
   }
 
   Future<bool> forgotPassword(String phone) async {
-    state = state.copyWith(isLoading: true, error: null, isSuccess: false);
+    state = state.copyWith(isLoading: true, clearError: true, isSuccess: false);
     try {
       final dio = ref.read(dioProvider);
 
-      await dio.post('/users/forgot-password', data: {'phone_number': phone});
+      await dio.post(
+        '/users/forgot-password',
+        data: {'phone_number': phone},
+        options: Options(extra: {'skipAuthInterceptor': true}),
+      );
 
       state = state.copyWith(isLoading: false, isSuccess: true);
       return true;
     } on DioException catch (e) {
       final errorMsg =
           e.response?.data['detail'] ?? 'خطا در ارسال درخواست فراموشی رمز عبور';
-      state = state.copyWith(isLoading: false, error: errorMsg.toString());
+      state = state.copyWith(isLoading: false, error: '❌ $errorMsg');
       return false;
     }
   }
@@ -235,7 +270,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String code,
     String newPassword,
   ) async {
-    state = state.copyWith(isLoading: true, error: null, isSuccess: false);
+    state = state.copyWith(isLoading: true, clearError: true, isSuccess: false);
     try {
       final dio = ref.read(dioProvider);
 
@@ -246,6 +281,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           'otp_code': code,
           'new_password': newPassword,
         },
+        options: Options(extra: {'skipAuthInterceptor': true}),
       );
 
       final loginStatus = await login(phone, newPassword);
@@ -254,7 +290,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final errorMsg =
           e.response?.data['detail'] ??
           'خطا در بازنشانی رمز عبور یا کد نامعتبر است.';
-      state = state.copyWith(isLoading: false, error: errorMsg.toString());
+      state = state.copyWith(isLoading: false, error: '❌ $errorMsg');
       return false;
     }
   }

@@ -880,24 +880,50 @@ class _CourseDetailPageState extends ConsumerState<CourseDetailPage> {
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'مبلغ سرمایه‌گذاری:',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.black54,
-                                    fontFamily: 'Samim',
+                                // const Text(
+                                //   'مبلغ سرمایه‌گذاری:',
+                                //   style: TextStyle(
+                                //     fontSize: 11,
+                                //     color: Colors.black54,
+                                //     fontFamily: 'Samim',
+                                //   ),
+                                // ),
+                                // const SizedBox(height: 4),
+                                // بررسی وضعیت تخفیف فعال روی این دوره
+                                if (course['is_discount_active'] == true) ...[
+                                  Text(
+                                    _formatPrice(course['price']),
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey,
+                                      fontFamily: 'Samim',
+                                      decoration: TextDecoration.lineThrough,
+                                      decorationColor: Colors.red,
+                                      decorationThickness: 2.0, // ضخامت خط قرمز
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _formatPrice(course['price']),
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primary,
-                                    fontFamily: 'Samim',
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _formatPrice(course['final_price']),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primary,
+                                      fontFamily: 'Samim',
+                                    ),
                                   ),
-                                ),
+                                ] else ...[
+                                  Text(
+                                    _formatPrice(course['price']),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primary,
+                                      fontFamily: 'Samim',
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                             const SizedBox(width: 24),

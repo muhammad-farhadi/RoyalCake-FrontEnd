@@ -492,9 +492,17 @@ class DashboardView extends ConsumerWidget {
                       );
                     }
                     final course = courses[index];
+                    final bool isDiscount =
+                        course['is_discount_active'] == true;
+
                     return CourseCard(
                       title: course['title'] ?? '',
-                      price: formatPrice(course['price']),
+                      // قیمت اصلی نمایش داده شده (اگر تخفیف فعال بود، قیمت تخفیف خورده ارسال می‌شود)
+                      price: isDiscount
+                          ? formatPrice(course['final_price'])
+                          : formatPrice(course['price']),
+                      oldPrice: formatPrice(course['price']),
+                      isDiscountActive: isDiscount,
                       imageUrl: course['image_url'] ?? '',
                       onTap: () {
                         Navigator.push(

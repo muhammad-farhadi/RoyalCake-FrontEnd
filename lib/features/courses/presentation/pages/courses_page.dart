@@ -174,14 +174,45 @@ class CoursesPage extends ConsumerWidget {
                                             mainAxisAlignment:
                                                 MainAxisAlignment.spaceBetween,
                                             children: [
-                                              Text(
-                                                formatPrice(course['price']),
-                                                style: const TextStyle(
-                                                  color: AppColors.primary,
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontFamily: 'Samim',
-                                                ),
+                                              Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  if (course['is_discount_active'] == true) ...[
+                                                    Text(
+                                                      formatPrice(course['price']),
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        fontWeight: FontWeight.w600,
+                                                        color: Colors.grey.shade500,
+                                                        fontFamily: 'Samim',
+                                                        decoration: TextDecoration.lineThrough,
+                                                        decorationColor: Colors.red.shade600,
+                                                        decorationThickness: 2.0,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      formatPrice(course['final_price']),
+                                                      style: const TextStyle(
+                                                        color: AppColors.primary,
+                                                        fontSize: 14,
+                                                        fontWeight: FontWeight.bold,
+                                                        fontFamily: 'Samim',
+                                                      ),
+                                                    ),
+                                                  ] else ...[
+                                                    Text(
+                                                      formatPrice(course['price']),
+                                                      style: const TextStyle(
+                                                        color: AppColors.primary,
+                                                        fontSize: 13,
+                                                        fontWeight: FontWeight.bold,
+                                                        fontFamily: 'Samim',
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ],
                                               ),
                                               ElevatedButton(
                                                 onPressed: () {

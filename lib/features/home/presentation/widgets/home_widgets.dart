@@ -73,6 +73,8 @@ class CategoryItem extends StatelessWidget {
 class CourseCard extends StatelessWidget {
   final String title;
   final String price;
+  final String? oldPrice; // 🔴 اضافه شد: قیمت اصلی قبل تخفیف
+  final bool isDiscountActive; // 🔴 اضافه شد: وضعیت تخفیف فعال
   final String imageUrl;
   final VoidCallback onTap;
 
@@ -82,6 +84,9 @@ class CourseCard extends StatelessWidget {
     required this.price,
     required this.imageUrl,
     required this.onTap,
+    this.oldPrice, // 🔴 اضافه شد
+    this.isDiscountActive =
+        false, // 🔴 اضافه شد (مقدار پیش‌فرض فالز تا بقیه جاها ارور ندهند)
   });
 
   @override
@@ -119,7 +124,8 @@ class CourseCard extends StatelessWidget {
                   width: double.infinity,
                   child: Image.network(
                     fullUrl,
-                    fit: BoxFit.cover, // 🔴 تغییر از cover به contain برای نمایش کامل عکس دوره در داشبورد
+                    fit: BoxFit.cover,
+                    // 🔴 تغییر از cover به contain برای نمایش کامل عکس دوره در داشبورد
                     errorBuilder: (context, error, stackTrace) => const Center(
                       child: Icon(
                         Icons.broken_image_outlined,
@@ -162,14 +168,36 @@ class CourseCard extends StatelessWidget {
                       ),
 
                       // قیمت
-                      Text(
-                        price,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Samim',
-                          color: AppColors.primary,
-                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isDiscountActive && oldPrice != null) ...[
+                            Text(
+                              oldPrice!,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade500,
+                                fontFamily: 'Samim',
+                                decoration: TextDecoration.lineThrough,
+                                decorationColor: Colors.red.shade600,
+                                // خط قرمز روی قیمت اصلی
+                                decorationThickness: 2.0,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                          ],
+                          Text(
+                            price,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Samim',
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
