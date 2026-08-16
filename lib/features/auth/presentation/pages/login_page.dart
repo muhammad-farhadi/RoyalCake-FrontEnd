@@ -21,7 +21,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   void initState() {
     super.initState();
-    // 🔴 اطمینان از اینکه هنگام برگشتن به این صفحه ارورهای قبلی پاک باشند
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(authProvider.notifier).clearError();
     });
@@ -35,14 +34,27 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   void _login() async {
-    final phone = _phoneController.text.trim();
-    final password = _passwordController.text.trim();
+    final phone = toEnglishDigits(_phoneController.text.trim());
+    final password = toEnglishDigits(_passwordController.text.trim());
 
     if (phone.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            '⚠️ لطفاً اطلاعات را کامل وارد کنید.',
+            '⚠️ لطفاً کادرهای شماره موبایل و رمز عبور را پر کنید.',
+            style: TextStyle(fontFamily: 'Samim'),
+          ),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    if (phone.length < 11 || !phone.startsWith('0')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            '⚠️ شماره موبایل معتبر نیست! باید ۱۱ رقم کامل و با ۰ شروع شود.',
             style: TextStyle(fontFamily: 'Samim'),
           ),
           backgroundColor: Colors.redAccent,
@@ -87,190 +99,197 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final authState = ref.watch(authProvider);
     final theme = Theme.of(context);
 
-    return Scaffold(
-      backgroundColor: const Color(0xfffcf8f8),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 40),
-              Center(child: Image.asset('assets/images/logo.png', height: 120)),
-              const SizedBox(height: 40),
-
-              Center(
-                child: Text(
-                  'خوش آمدید',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.headlineLarge?.copyWith(
-                    color: const Color(0xff0c4d3b),
-                    fontWeight: FontWeight.bold,
-                  ),
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: const Color(0xfffcf8f8),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 40),
+                Center(
+                  child: Image.asset('assets/images/logo.png', height: 120),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Center(
-                child: Text(
-                  'لطفاً برای ورود به حساب کاربری خود اطلاعات زیر را وارد کنید',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xff2c3e50),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 40),
 
-              // ===================================================================
-              // 🚨 بنر خطای کوبنده و تابلوی ورود
-              // ===================================================================
-              if (authState.error != null) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.red.shade300, width: 2),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.report_problem_rounded,
-                        color: Colors.red.shade700,
-                        size: 28,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          authState.error!,
-                          style: TextStyle(
-                            fontFamily: 'Samim',
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red.shade900,
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
-
-              // فیلد شماره موبایل
-              _buildTextField(
-                controller: _phoneController,
-                hint: 'شماره موبایل (مانند: 09123456789)',
-                icon: Icons.phone_iphone,
-                keyboardType: TextInputType.phone,
-                maxLength: 11,
-                helperText: '⚠️ شماره همراه باید ۱۱ رقم کامل باشد جهت ورود.',
-              ),
-              const SizedBox(height: 16),
-
-              // فیلد رمز عبور
-              _buildTextField(
-                controller: _passwordController,
-                hint: 'رمز عبور',
-                icon: Icons.lock_outline,
-                isPassword: true,
-                helperText: '💡 رمزی که موقع ثبت‌نام انتخاب کرده‌اید.',
-              ),
-
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {
-                    // 🔴 پاک کردن ارور قبل از باز شدن باتم شیت
-                    ref.read(authProvider.notifier).clearError();
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(24),
-                        ),
-                      ),
-                      backgroundColor: Colors.white,
-                      builder: (context) => const ForgotPasswordSheet(),
-                    );
-                  },
-                  child: const Text(
-                    'رمز عبور خود را فراموش کرده‌اید؟',
-                    style: TextStyle(
-                      color: Color(0xfffc94a1),
-                      fontSize: 13,
+                Center(
+                  child: Text(
+                    'خوش آمدید!',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.headlineLarge?.copyWith(
+                      color: const Color(0xff0c4d3b),
                       fontWeight: FontWeight.bold,
+                      fontFamily: 'Samim',
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 8),
+                Center(
+                  child: Text(
+                    'لطفاً برای ورود به حساب کاربری خود اطلاعات زیر را وارد کنید',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xff2c3e50),
+                      fontFamily: 'Samim',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
 
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: authState.isLoading ? null : _login,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xff0c4d3b),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
+                // بنر خطای کوبنده و شکیل به زبان فارسی روان
+                if (authState.error != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
                       borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.red.shade300, width: 2),
                     ),
-                    elevation: 1,
-                  ),
-                  child: authState.isLoading
-                      ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text(
-                          'ورود',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.report_problem_rounded,
+                          color: Colors.red.shade700,
+                          size: 28,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            authState.error!,
+                            style: TextStyle(
+                              fontFamily: 'Samim',
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red.shade900,
+                              height: 1.5,
+                            ),
                           ),
                         ),
-                ),
-              ),
-              const SizedBox(height: 32),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'هنوز ثبت‌نام نکرده‌اید؟',
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                  TextButton(
+                // فیلد شماره موبایل
+                _buildTextField(
+                  controller: _phoneController,
+                  hint: 'شماره موبایل (مانند: 09123456789)',
+                  icon: Icons.phone_iphone,
+                  keyboardType: TextInputType.phone,
+                  maxLength: 11,
+                  helperText: '⚠️ شماره همراه باید ۱۱ رقم کامل باشد.',
+                ),
+                const SizedBox(height: 16),
+
+                // فیلد رمز عبور
+                _buildTextField(
+                  controller: _passwordController,
+                  hint: 'رمز عبور',
+                  icon: Icons.lock_outline,
+                  isPassword: true,
+                  helperText:
+                      '💡 رمزی که موقع ایجاد حساب کاربری انتخاب کرده‌اید.',
+                ),
+
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
                     onPressed: () {
-                      // 🔴 پاک کردن قطعی ارور قبل از رفتن به صفحه ثبت نام
                       ref.read(authProvider.notifier).clearError();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SignupPage(),
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(24),
+                          ),
                         ),
+                        backgroundColor: Colors.white,
+                        builder: (context) => const ForgotPasswordSheet(),
                       );
                     },
                     child: const Text(
-                      'ایجاد حساب کاربری',
+                      'رمز عبور خود را فراموش کرده‌اید؟',
                       style: TextStyle(
-                        color: Color(0xff0c4d3b),
+                        color: Color(0xfffc94a1),
+                        fontSize: 13,
                         fontWeight: FontWeight.bold,
+                        fontFamily: 'Samim',
                       ),
                     ),
                   ),
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(height: 24),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: authState.isLoading ? null : _login,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xff0c4d3b),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 1,
+                    ),
+                    child: authState.isLoading
+                        ? const SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'ورود',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Samim',
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'هنوز ثبت‌نام نکرده‌اید؟',
+                      style: TextStyle(fontFamily: 'Samim'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        ref.read(authProvider.notifier).clearError();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SignupPage(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'ایجاد حساب کاربری',
+                        style: TextStyle(
+                          color: Color(0xff0c4d3b),
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Samim',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -284,7 +303,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     bool isPassword = false,
     TextInputType keyboardType = TextInputType.text,
     int? maxLength,
-    required String helperText, // پارامتر هلپر
+    required String helperText,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -294,10 +313,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           keyboardType: keyboardType,
           obscureText: isPassword && !_isPasswordVisible,
           maxLength: maxLength,
-          style: const TextStyle(fontSize: 16),
+          style: const TextStyle(fontSize: 16, fontFamily: 'Samim'),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+            hintStyle: TextStyle(
+              color: Colors.grey.shade400,
+              fontSize: 14,
+              fontFamily: 'Samim',
+            ),
             counterText: "",
             filled: true,
             fillColor: Colors.white,

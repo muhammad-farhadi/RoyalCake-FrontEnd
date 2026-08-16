@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
-import 'package:file_picker/file_picker.dart'; // اضافه شدن فایل‌پیکر
+import 'package:file_picker/file_picker.dart';
+import 'voice_message_player.dart'; // 🔴 ایمپورت پخش‌کننده ویس
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/providers/auth_provider.dart';
@@ -19,7 +20,6 @@ class _SupportChatPageState extends ConsumerState<SupportChatPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  // اسکرول نرم به آخرین پیام
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
@@ -46,25 +46,21 @@ class _SupportChatPageState extends ConsumerState<SupportChatPage> {
   }
 
   Future<void> _pickAndUploadFile() async {
-    // تغییر مهم برای نسخه 11 به بعد: کلمه platform حذف شد
     FilePickerResult? result = await FilePicker.pickFiles(
       type: FileType.any,
-      withData: kIsWeb, // برای کروم (وب) حتماً دیتا را به صورت بایت می‌گیریم
+      withData: kIsWeb,
     );
 
     if (result != null) {
       final file = result.files.single;
 
-      // اجرای حالت وب (کروم)
       if (kIsWeb) {
         if (file.bytes != null) {
           ref
               .read(chatProvider.notifier)
               .sendMediaMessage(fileBytes: file.bytes, fileName: file.name);
         }
-      }
-      // اجرای حالت موبایل (اندروید / iOS)
-      else {
+      } else {
         if (file.path != null) {
           ref
               .read(chatProvider.notifier)
@@ -79,7 +75,6 @@ class _SupportChatPageState extends ConsumerState<SupportChatPage> {
     final chatState = ref.watch(chatProvider);
     final myUserId = ref.watch(authProvider).userInfo?['id'];
 
-    // اطمینان از اسکرول به پایین هنگام دریافت پیام جدید یا لود شدن تاریخچه
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (chatState.unreadCount > 0) {
         ref.read(chatProvider.notifier).markAsRead();
@@ -118,7 +113,6 @@ class _SupportChatPageState extends ConsumerState<SupportChatPage> {
                   ),
           ),
 
-          // نوار لودینگ در زمان آپلود فایل
           if (chatState.isUploading)
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
@@ -145,14 +139,12 @@ class _SupportChatPageState extends ConsumerState<SupportChatPage> {
               ),
             ),
 
-          // باکس ارسال پیام
           _buildMessageInput(chatState.isUploading),
         ],
       ),
     );
   }
 
-  // طراجی حباب چت با پشتیبانی از انواع فایل‌ها
   Widget _buildChatBubble(dynamic msg, bool isMe) {
     final timeStr = intl.DateFormat('HH:mm').format(msg.createdAt.toLocal());
     final hasAttachment =
@@ -201,9 +193,6 @@ class _SupportChatPageState extends ConsumerState<SupportChatPage> {
                 ),
               ),
 
-            // ==========================================
-            // بخش رندر کردن فایل‌های پیوست شده بر اساس نوع
-            // ==========================================
             if (hasAttachment) ...[
               _buildAttachmentWidget(
                 msg.attachmentType,
@@ -213,7 +202,6 @@ class _SupportChatPageState extends ConsumerState<SupportChatPage> {
               const SizedBox(height: 6),
             ],
 
-            // متن پیام (اگر فایل نباشد یا همراه فایل متنی هم باشد)
             if (msg.content.isNotEmpty && msg.content != 'فایل ضمیمه')
               Text(
                 msg.content,
@@ -225,7 +213,6 @@ class _SupportChatPageState extends ConsumerState<SupportChatPage> {
                 ),
               ),
 
-            // زمان ارسال پیام
             const SizedBox(height: 4),
             Text(
               timeStr,
@@ -241,7 +228,6 @@ class _SupportChatPageState extends ConsumerState<SupportChatPage> {
     );
   }
 
-  // ویجت کمکی برای نمایش نوع فایل پیوست
   Widget _buildAttachmentWidget(String? type, String url, bool isMe) {
     final fullUrl = AppConstants.getFullImageUrl(url);
     final color = isMe ? Colors.white : AppColors.primary;
@@ -265,26 +251,9 @@ class _SupportChatPageState extends ConsumerState<SupportChatPage> {
         child: Icon(Icons.play_circle_fill_rounded, color: color, size: 40),
       );
     } else if (type == 'voice') {
-      return Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.mic_rounded, color: color),
-            const SizedBox(width: 8),
-            Text(
-              'پیام صوتی',
-              style: TextStyle(color: color, fontFamily: 'Samim', fontSize: 12),
-            ),
-          ],
-        ),
-      );
+      // 🔴 نمایش پخش‌کننده ویس اختصاصی
+      return VoiceMessagePlayer(audioUrl: fullUrl, isUserMessage: isMe);
     } else {
-      // حالت سند (Document)
       return Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
@@ -324,9 +293,7 @@ class _SupportChatPageState extends ConsumerState<SupportChatPage> {
           children: [
             IconButton(
               icon: const Icon(Icons.attach_file_rounded, color: Colors.grey),
-              onPressed: isUploading
-                  ? null
-                  : _pickAndUploadFile, // استفاده از متد جدید فایل‌پیکر
+              onPressed: isUploading ? null : _pickAndUploadFile,
             ),
             Expanded(
               child: TextField(

@@ -485,7 +485,7 @@ class AppDrawer extends ConsumerWidget {
                     size: 20,
                   ),
                   title: const Text(
-                    'چت آنلاین با پشتیبانی',
+                    'چت آنلاین',
                     style: TextStyle(fontFamily: 'Samim', fontSize: 13),
                   ),
                   onTap: () {
@@ -622,16 +622,23 @@ class MainBottomNav extends ConsumerWidget {
                 ref.read(bottomNavIndexProvider.notifier).state = 6;
               },
             ),
+
+            // 🔴 دکمه جدید آموزش اپلیکیشن (جایگزین گالری)
             BottomNavShortcut(
-              icon: Icons.image_rounded,
-              label: 'گالری',
+              icon: Icons.smart_display_outlined,
+              label: 'آموزش اپ',
               color: Colors.grey.shade400,
-              isActive: currentTab == 2,
+              isActive: false,
               onTap: () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
-                ref.read(bottomNavIndexProvider.notifier).state = 2;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AppTutorialPage(),
+                  ),
+                );
               },
             ),
+
             Badge(
               isLabelVisible: unreadCount > 0,
               label: Text(
@@ -642,7 +649,7 @@ class MainBottomNav extends ConsumerWidget {
               offset: const Offset(-8, -4),
               child: BottomNavShortcut(
                 icon: Icons.chat_bubble_outline_rounded,
-                label: 'پشتیبانی',
+                label: 'چت آنلاین',
                 color: Colors.grey.shade400,
                 isActive: currentTab == 3,
                 onTap: () => handleProtected(() {

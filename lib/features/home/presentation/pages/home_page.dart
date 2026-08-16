@@ -10,6 +10,7 @@ import '../../../support/presentation/pages/support_chat_page.dart';
 import '../../providers/home_provider.dart';
 import '../widgets/layout_widgets.dart';
 import 'dashboard_view.dart';
+import '../../../../core/utils/app_update_checker.dart'; // 🔴 ۱. ایمپورت چک‌کننده آپدیت (آدرس دقیق فایل را تنظیم کن)
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -21,6 +22,15 @@ class HomePage extends ConsumerStatefulWidget {
 class _HomePageState extends ConsumerState<HomePage> {
   // 🔴 مخزن تاریخچه حرکت کاربر بین تب‌ها (شروع از تب صفر/خانه)
   final List<int> _tabHistory = [0];
+
+  @override
+  void initState() {
+    super.initState();
+    // 🔴 ۲. استعلام ورژن جدید به محض باز شدن صفحه اصلی و بعد از رندر فریم اول
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppUpdateChecker.check(context, ref);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,16 +80,14 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ? IconButton(
                     icon: const Icon(
                       Icons.arrow_back_ios_new_rounded,
-                      // فلش بازگشت راست‌چین شیک متناسب با لایوت RTL فارسی
                       color: AppColors.primary,
                       size: 22,
                     ),
                     onPressed: () {
-                      // برگشتن به صفحه خانه (داشبورد)
                       ref.read(bottomNavIndexProvider.notifier).state = 0;
                     },
                   )
-                : null, // برای بقیه صفحات مقدار null فرستاده می‌شود تا منوی همبرگری کشویی کار کند
+                : null,
           ),
           drawer: const AppDrawer(),
           body: currentTab == 6
