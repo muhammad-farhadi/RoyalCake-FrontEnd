@@ -80,9 +80,7 @@ class _TutorialVideoPlayerPageState extends State<TutorialVideoPlayerPage> {
           DeviceOrientation.landscapeLeft,
           DeviceOrientation.landscapeRight,
         ],
-        deviceOrientationsAfterFullScreen: const [
-          DeviceOrientation.portraitUp,
-        ],
+        deviceOrientationsAfterFullScreen: const [DeviceOrientation.portraitUp],
         materialProgressColors: ChewieProgressColors(
           playedColor: AppColors.primary,
           handleColor: AppColors.accent,
@@ -95,8 +93,10 @@ class _TutorialVideoPlayerPageState extends State<TutorialVideoPlayerPage> {
 
       setState(() => _isLoading = false);
     } on TimeoutException {
-      _fail('ویدیو بعد از ۲۵ ثانیه بارگذاری نشد.\n'
-          'اتصال اینترنت خود را بررسی کنید.');
+      _fail(
+        'ویدیو بعد از ۲۵ ثانیه بارگذاری نشد.\n'
+        'اتصال اینترنت خود را بررسی کنید.',
+      );
     } catch (e) {
       _fail('خطا در بارگذاری ویدیو:\n$e');
     }
@@ -130,8 +130,10 @@ class _TutorialVideoPlayerPageState extends State<TutorialVideoPlayerPage> {
         return Directionality(
           textDirection: TextDirection.rtl,
           child: Padding(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 24.0,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,8 +163,9 @@ class _TutorialVideoPlayerPageState extends State<TutorialVideoPlayerPage> {
                       style: TextStyle(
                         fontFamily: 'Samim',
                         color: isSelected ? AppColors.accent : Colors.white,
-                        fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                     onTap: () {
@@ -217,8 +220,11 @@ class _TutorialVideoPlayerPageState extends State<TutorialVideoPlayerPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error_outline_rounded,
-              color: Colors.redAccent, size: 48),
+          const Icon(
+            Icons.error_outline_rounded,
+            color: Colors.redAccent,
+            size: 48,
+          ),
           const SizedBox(height: 14),
           Text(
             message ?? _errorMessage,
@@ -268,8 +274,10 @@ class _TutorialVideoPlayerPageState extends State<TutorialVideoPlayerPage> {
             if (!_isLoading && !_hasError)
               IconButton(
                 icon: Container(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
@@ -277,8 +285,11 @@ class _TutorialVideoPlayerPageState extends State<TutorialVideoPlayerPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.speed_rounded,
-                          color: Colors.white, size: 18),
+                      const Icon(
+                        Icons.speed_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         '${_currentSpeed}x',
@@ -297,12 +308,18 @@ class _TutorialVideoPlayerPageState extends State<TutorialVideoPlayerPage> {
             const SizedBox(width: 12),
           ],
         ),
-        body: Center(
-          child: _isLoading
-              ? _buildLoadingView()
-              : _hasError
-              ? _buildErrorView()
-              : Chewie(controller: _chewieController!),
+        body: SafeArea(
+          bottom: true,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: Center(
+              child: _isLoading
+                  ? _buildLoadingView()
+                  : _hasError
+                  ? _buildErrorView()
+                  : Chewie(controller: _chewieController!),
+            ),
+          ),
         ),
       ),
     );

@@ -355,12 +355,18 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage> {
             const SizedBox(width: 12),
           ],
         ),
-        body: Center(
-          child: _isLoading
-              ? _buildLoadingView()
-              : _hasError
-              ? _buildErrorView()
-              : Chewie(controller: _chewieController!),
+        body: SafeArea(
+          bottom: true,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: Center(
+              child: _isLoading
+                  ? _buildLoadingView()
+                  : _hasError
+                  ? _buildErrorView()
+                  : Chewie(controller: _chewieController!),
+            ),
+          ),
         ),
       ),
     );
