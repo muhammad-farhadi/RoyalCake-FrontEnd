@@ -38,7 +38,7 @@ class _CartPageState extends ConsumerState<CartPage>
   }
 
   // ===================================================================
-  // جادوی بررسی موفق یا ناموفق بودن پرداخت پس از بسته شدن درگاه
+  // جادوی بررسی موفق یا ناموفق بودن پرداخت پس از بازگشت از مرورگر گوشی
   // ===================================================================
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -143,12 +143,10 @@ class _CartPageState extends ConsumerState<CartPage>
             const SnackBar(
               backgroundColor: AppColors.primary,
               content: Text(
-                'در حال انتقال به درگاه پرداخت...',
+                'در حال انتقال به مرورگر جهت پرداخت...',
                 style: TextStyle(fontFamily: 'Samim'),
               ),
-              duration: Duration(
-                seconds: 15,
-              ), // به قدری بالا می‌بریم تا مرورگر باز بشه، بعداً خودمون دستی پاکش میکنیم
+              duration: Duration(seconds: 5),
             ),
           );
         }
@@ -156,18 +154,15 @@ class _CartPageState extends ConsumerState<CartPage>
         // علامت‌گذاری اینکه کاربر رسماً وارد فاز پرداخت شد
         setState(() => _wentToPayment = true);
 
-        // باز کردن لینک درگاه
+        // 🔴🔴🔴 جادوی حل مشکل شاپرک: باز کردن اجباری در مرورگر پیش‌فرض گوشی 🔴🔴🔴
         await launchUrl(
           url,
-          mode: kIsWeb
-              ? LaunchMode.platformDefault
-              : LaunchMode.inAppBrowserView,
+          mode: LaunchMode
+              .externalApplication, // 👈 دقیقاً تغییری که بک‌اند کارت خواست
         );
-
-        // 👈 توجه: اینجا دیگه دستور Navigator.push نداریم!
-        // کاربر تو همین صفحه زیرِ مرورگر میمونه تا کارش تموم بشه و تابع didChangeAppLifecycleState بالا اجرا بشه
       } catch (_) {
-        await launchUrl(url);
+        // در صورت بروز خطا هم تلاش می‌کنیم حتماً اکسترنال باز بشه
+        await launchUrl(url, mode: LaunchMode.externalApplication);
       }
     } catch (e) {
       if (mounted) {

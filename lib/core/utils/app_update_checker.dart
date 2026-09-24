@@ -5,7 +5,7 @@ import '../../../../core/network/dio_client.dart';
 import '../../../../core/theme/app_colors.dart';
 
 // 🔴 ورژن فعلی اپلیکیشن (مطابق با pubspec.yaml شما)
-const String kCurrentAppVersion = "1.1.9";
+const String kCurrentAppVersion = "1.1.10";
 
 class AppUpdateChecker {
   // متد مقایسه هوشمند دو رشته نسخه (مثلاً 1.1.3 با 1.1.4)
